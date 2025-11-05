@@ -1,0 +1,102 @@
+#!/usr/bin/python3
+
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import tomllib
+
+
+def create_package():
+    """
+    Create a .zip package for the addon.
+    """
+    current_dir = Path(__file__).parent.resolve()
+
+    # Get the version from the manifest.toml
+    with open(current_dir / "blender_manifest.toml", "rb") as f:
+        manifest_data = tomllib.load(f)
+        name = manifest_data["id"]
+        version = manifest_data["version"]
+
+    # Generate the file path
+    name = f"{name}-{version}"
+    zip_file = current_dir / "build" / f"{name}.zip"
+
+    # Generate the blockset from .gitignore and static entries
+    blockset = {
+        ".git/",
+        ".gitignore",
+        ".vscode/",
+        "create_package",
+        "create_repository",
+        "repository/",
+        "poetry.lock",
+        "pyproject.toml",
+        "README.md",
+    }
+    with open(current_dir / ".gitignore") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            blockset.add(line)
+
+    # Generate the command
+    cmd = ["zip", "-r", zip_file, ".", "-x"]
+    for block in blockset:
+        if block.endswith("/"):
+            block += "*"
+        cmd.append(block)
+
+    # Pack the .zip file
+    if zip_file.exists():
+        print("Removing existing .zip file.")
+        zip_file.unlink()
+    print(f"Command: {cmd}")
+    subprocess.run(cmd, cwd=current_dir)
+
+
+def create_repository(repo_url: str):
+    """
+    (Re-)create the repository for existing packages.
+    """
+    current_dir = Path(__file__).parent.resolve()
+    repo_dir = current_dir / "repository"
+    build_dir = current_dir / "build"
+
+    # Use custom Blender path if it's not in path
+    if shutil.which("blender"):
+        cmd = ["blender"]
+    else:
+        cmd = ["/var/opt/packages/programs/blender/4.5.4/platform-linux/blender"]
+
+    cmd += [
+        "--command",
+        "extension",
+        "server-generate",
+        f"--repo-dir={build_dir.as_posix()}",
+    ]
+
+    # Generate the repository
+    subprocess.run(cmd, cwd=build_dir)
+
+    # Edit the generated JSON
+    build_json = build_dir / "index.json"
+    with open(build_json, "r") as f:
+        data = json.load(f)
+        for package in data["data"]:
+            name = Path(package["archive_url"]).name
+            version = package["version"]
+            package["archive_url"] = f"{repo_url}/releases/download/{version}/{name}"
+    with open(build_json, "w") as f:
+        json.dump(data, f, indent=2)
+
+    # Move JSON into repo_dir
+    build_json.rename(repo_dir / build_json.name)
+
+
+if __name__ == "__main__":
+    url = "https://github.com/Plyrolith/schalotte_tools"
+    create_package()
+    create_repository(url)

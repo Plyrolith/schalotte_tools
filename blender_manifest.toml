@@ -1,0 +1,11 @@
+schema_version = "1.0.0"
+id = "schalotte_tools"
+version = "0.1.0"
+name = "Schalotte Tools"
+tagline = "Blender tools for the Schalotte project"
+maintainer = "Tristan Weis"
+type = "add-on"
+website = "https://github.com/Plyrolith/schalotte-tools"
+tags = ["Pipeline"]
+blender_version_min = "4.5.0"
+license = ["SPDX:GPL-3.0-or-later"]
