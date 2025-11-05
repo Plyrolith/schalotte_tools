@@ -14,7 +14,7 @@ import shutil
 import urllib
 
 import addon_utils
-from bpy.props import BoolProperty, IntVectorProperty, StringProperty
+from bpy.props import BoolProperty, StringProperty
 
 from . import catalogue, exceptions, logger
 
@@ -46,21 +46,11 @@ requests.models.complexjson.dumps = functools.partial(  # type: ignore
     json.dumps,
     cls=CustomJSONEncoder,
 )
+
+CACHE: dict[str, requests.Response] = {}
 SESSION = requests.Session()
 USER: dict | None = None
 VERSION: str | None = None
-
-
-def update_host(self: Client, context: Context):
-    """
-    Set the correct URLs for the client.
-    """
-    url = self.host.rstrip("/").replace("/api", "")
-    if self.event_host != url:
-        self.event_host = url
-    host = url + "/api"
-    if self.host != host:
-        self.host = host
 
 
 @catalogue.bpy_preferences
@@ -69,8 +59,27 @@ class Client(catalogue.PreferencesModule):
 
     module: str = "client"
 
+    def update_host(self, context: Context | None = None):
+        """
+        Set the correct URLs for the client.
+        """
+        url = self.host.rstrip("/").replace("/api", "")
+        if self.event_host != url:
+            self.event_host = url
+        host = url + "/api"
+        if self.host != host:
+            self.host = host
+
+    def clear_cache(self, context: Context | None = None):
+        """
+        Clear the cache.
+        """
+        log.info("Clearing cache.")
+        CACHE.clear()
+
     # Bool
     is_logged_in: BoolProperty(name="Logged In")
+    use_cache: BoolProperty(name="Use Cache", default=True, update=clear_cache)
     use_tokens: BoolProperty(name="Keep me signed in", default=True)
 
     # String
@@ -91,6 +100,7 @@ class Client(catalogue.PreferencesModule):
 
     if TYPE_CHECKING:
         is_logged_in: bool
+        use_cache: bool
         use_tokens: bool
         access_token: str
         event_host: str
@@ -341,15 +351,26 @@ class Client(catalogue.PreferencesModule):
         Returns:
             Any: The request result
         """
+        global CACHE
         path = self.build_path_with_params(path, params)
+        if self.use_cache:
+            response = CACHE.get(path)
+            if response:
+                log.debug(f"CACHED {path}")
+                if json_response:
+                    return response.json()
+                return response.text
+
         url = self.get_full_url(path)
         log.debug(f"GET {url}")
         response = self.session.get(url, headers=self.make_auth_header())
         self.check_status(response, path)
 
+        if self.use_cache:
+            CACHE[path] = response
+
         if json_response:
             return response.json()
-
         return response.text
 
     def get_api_version(self) -> str:
@@ -486,6 +507,7 @@ class Client(catalogue.PreferencesModule):
         Returns:
             dict | None: The session's tokens
         """
+        self.clear_cache()
         tokens = {}
         try:
             tokens = self.post(
@@ -510,6 +532,7 @@ class Client(catalogue.PreferencesModule):
         """
         Log out.
         """
+        self.clear_cache()
         self.set_tokens()
         self.login_date = ""
 

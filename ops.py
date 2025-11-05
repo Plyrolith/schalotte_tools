@@ -2,12 +2,16 @@ from __future__ import annotations
 from typing import Literal, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import Context
+    from bpy.types import Context, Event
 
+from pathlib import Path
 import pprint
+import tempfile
+
 import bpy
+from bpy.props import EnumProperty, StringProperty
 from bpy.types import Operator
-from . import catalogue, client, logger
+from . import catalogue, client, logger, utils, wm_select
 
 log = logger.get_logger(__name__)
 
@@ -34,20 +38,20 @@ class SCHALOTTETOOLS_OT_LogIn(Operator):
     @classmethod
     def poll(cls, context) -> bool:
         """
-        Allow operator to run if the active scene has a sequencer.
+        Allow this operator only when host, username and password are set.
 
         Args:
             context (Context)
 
         Returns:
-            bool: Whether the active scene has a sequencer or not
+            bool: All properties are set
         """
         c = client.Client.this()
         return bool(c.host and c.username and c.password)
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
-        Add multiple videos as a sequence of movie strips to the sequencer.
+        Log in to Kitsu.
 
         Args:
             context (Context)
@@ -77,19 +81,19 @@ class SCHALOTTETOOLS_OT_LogOut(Operator):
     @classmethod
     def poll(cls, context) -> bool:
         """
-        Allow operator to run if the active scene has a sequencer.
+        Allow this operator only when logged in.
 
         Args:
             context (Context)
 
         Returns:
-            bool: Whether the active scene has a sequencer or not
+            bool: Whether the client is logged in or not.
         """
         return client.Client.this().is_logged_in
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
-        Add multiple images as a sequence of image strips to the sequencer.
+        End the active Kitsu login session.
 
         Args:
             context (Context)
@@ -99,4 +103,109 @@ class SCHALOTTETOOLS_OT_LogOut(Operator):
         """
         client.Client.this().log_out()
         log.info("Session ended.")
+        return {"FINISHED"}
+
+
+@catalogue.bpy_register
+class SCHALOTTETOOL_OT_UploadPreview(Operator):
+    """Render a preview and upload it to selected task"""
+
+    bl_idname = "schalotte.upload_preview"
+    bl_label = "Upload Preview"
+    bl_options = {"REGISTER"}
+
+    def enum_task_statuses(self, context: Context):
+        """
+        Enumerate task status items.
+        """
+        task_statuses = client.Client.this().fetch_list(
+            "task-status",
+            {"is_feedback_request": True},
+        )
+        if not task_statuses:
+            return [("NONE", "None", "No task status selected")]
+
+        return [(ts["id"], ts["name"], ts["name"]) for ts in task_statuses]
+
+    task_status: EnumProperty(name="Task Status", items=enum_task_statuses)
+    comment: StringProperty(name="Comment")
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Allow only if the client is logged in and a task is selected.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Logged in and task selected
+        """
+        return (
+            client.Client.this().is_logged_in
+            and wm_select.WmSelect.this().task != "NONE"
+        )
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Invoke the properties dialog.
+
+        Args:
+            context (Context)
+            event (Event)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Create a new comment, render the shot and upload the video to it.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if self.task_status == "NONE":
+            log.error("No task status for feedback request found.")
+            return {"CANCELLED"}
+
+        c = client.Client.this()
+
+        # Create new comment
+        log.info(f"Creating a new comment.")
+        task_id = wm_select.WmSelect.this().task
+        data = {"task_status_id": self.task_status, "comment": self.comment}
+        comment = c.post(f"actions/tasks/{task_id}/comment", data)
+
+        # Render preview
+        temp_dir = Path(tempfile.mkdtemp(prefix=f"{catalogue.get_package_base()}_"))
+        log.info(f"Creating temp dir at {temp_dir}")
+        stem = Path(bpy.data.filepath).stem
+        if not stem:
+            stem = "untitled"
+        file_path = temp_dir / f"{stem}.mp4"
+        log.info(f"Rendering video to {file_path}")
+        utils.render_scene(file_path, context.scene, use_stamp=True)
+
+        # Upload preview
+        log.info("Creating a new preview.")
+        preview = c.post(
+            f"actions/tasks/{task_id}/comments/{comment['id']}/add-preview",
+            {},
+        )
+        log.info(f"Uploading video to preview {preview['id']}")
+        c.upload(
+            f"pictures/preview-files/{preview['id']}?normalize=false",
+            file_path.as_posix(),
+        )
+
+        # Delete
+        log.info("Cleaning up temp dir.")
+        file_path.unlink()
+        temp_dir.rmdir()
+
         return {"FINISHED"}

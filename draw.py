@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bpy.types import AddonPreferences, Context, Panel
 
-from . import client, ops
+from . import client, ops, wm_select
 
 
 def login_ui(self: Panel | AddonPreferences, context: Context):
@@ -29,4 +29,25 @@ def login_ui(self: Panel | AddonPreferences, context: Context):
     col.row().prop(c, "host")
     col.row().prop(c, "username")
     col.row().prop(c, pw)
+    col = layout.row().column()
+    col.use_property_split = True
+    col.prop(c, "use_cache")
     layout.row().operator(op)
+
+
+def shots(self: Panel, context: Context):
+    """
+    Shot selector and Operator UI.
+    """
+    s = wm_select.WmSelect.this()
+    layout = self.layout
+
+    col = layout.column()
+    col.use_property_split = True
+    col.row().prop(s, "project")
+    col.row().prop(s, "episode")
+    col.row().prop(s, "sequence")
+    col.row().prop(s, "shot")
+    col.row().prop(s, "task")
+
+    layout.row().operator(ops.SCHALOTTETOOL_OT_UploadPreview.bl_idname)

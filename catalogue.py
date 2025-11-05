@@ -128,10 +128,24 @@ class WindowManagerModule(bpy.types.PropertyGroup):
         Return Blender's initiated instance of this module.
         """
         wm = bpy.context.window_manager
-        return getattr(getattr(wm, __package__), cls.module)  # type: ignore
+        return getattr(getattr(wm, get_package_base()), cls.module)  # type: ignore
 
 
 # Catalog functions
+
+
+def get_package_base() -> str:
+    """
+    Return the base package name without the repository prefix.
+
+    Returns:
+        str: Base package name
+    """
+    if not __package__:
+        return ""
+    if "." in __package__:
+        return __package__.split(".")[-1]
+    return __package__
 
 
 def register_bpy():

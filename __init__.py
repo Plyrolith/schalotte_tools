@@ -1,5 +1,5 @@
 import bpy
-from . import catalogue, client, logger, ops, preferences, wm_container
+from . import catalogue, client, logger, ops, panels, preferences, wm_container
 
 
 log = logger.get_logger(__name__)
@@ -50,7 +50,7 @@ def register():
 
     # Set pointer on window manager
     wm_pointer = bpy.props.PointerProperty(type=wm_container.WmContainer)
-    setattr(bpy.types.WindowManager, __package__, wm_pointer)  # type: ignore
+    setattr(bpy.types.WindowManager, catalogue.get_package_base(), wm_pointer)  # type: ignore
 
     # Try to get the current user to ensure login state
     client.Client.this().get_current_user()
