@@ -30,6 +30,7 @@ def create_package():
         ".vscode/",
         "create_package",
         "create_repository",
+        "img/",
         "repository/",
         "poetry.lock",
         "pyproject.toml",
