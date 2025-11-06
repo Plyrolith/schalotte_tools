@@ -35,9 +35,17 @@ def login_ui(self: Panel | AddonPreferences, context: Context):
     layout.row().operator(op)
 
 
+def setup(self: Panel, context: Context):
+    """
+    File setup operators.
+    """
+    layout = self.layout
+    layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname)
+
+
 def shots(self: Panel, context: Context):
     """
-    Shot selector and Operator UI.
+    Shot selector and operator UI.
     """
     s = wm_select.WmSelect.this()
     layout = self.layout

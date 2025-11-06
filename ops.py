@@ -11,7 +11,7 @@ import tempfile
 import bpy
 from bpy.props import EnumProperty, StringProperty
 from bpy.types import Operator
-from . import catalogue, client, logger, utils, wm_select
+from . import catalogue, client, logger, schalotte, utils, wm_select
 
 log = logger.get_logger(__name__)
 
@@ -208,4 +208,25 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         file_path.unlink()
         temp_dir.rmdir()
 
+        return {"FINISHED"}
+
+
+@catalogue.bpy_register
+class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
+    """Set up the current scene for storyboarding"""
+
+    bl_idname = "schalotte.setup_storyboard"
+    bl_label = "Storyboard Setup"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        schalotte.setup_storyboard(context.scene)
         return {"FINISHED"}

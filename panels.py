@@ -27,13 +27,26 @@ class SCHALOTTE_PT_login(Panel):
 
 
 @catalogue.bpy_register
+class SCHALOTTE_PT_setup(Panel):
+    bl_idname = "SCHALOTTE_PT_setup"
+    bl_category = "Schalotte"
+    bl_label = "Setup"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_order = 1
+
+    def draw(self, context: Context):
+        draw.setup(self, context)
+
+
+@catalogue.bpy_register
 class SCHALOTTE_PT_shots(Panel):
     bl_idname = "SCHALOTTE_PT_shots"
     bl_category = "Schalotte"
     bl_label = "Shots"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 1
+    bl_order = 2
 
     @classmethod
     def poll(cls, context: Context):
