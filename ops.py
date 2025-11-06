@@ -114,7 +114,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
     bl_label = "Upload Preview"
     bl_options = {"REGISTER"}
 
-    def enum_task_statuses(self, context: Context):
+    def enum_task_statuses(self, context: Context | None) -> list[tuple[str, str, str]]:
         """
         Enumerate task status items.
         """
@@ -125,7 +125,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         if not task_statuses:
             return [("NONE", "None", "No task status selected")]
 
-        return [(ts["id"], ts["name"], ts["name"]) for ts in task_statuses]
+        return [(ts["id"], ts["name"], ts["id"]) for ts in task_statuses]
 
     task_status: EnumProperty(name="Task Status", items=enum_task_statuses)
     comment: StringProperty(name="Comment")

@@ -26,7 +26,7 @@ class WmSelect(catalogue.WindowManagerModule):
         c = client.Client.this()
         if c.is_logged_in:
             for p in c.fetch_list("projects/open"):
-                projects_enum.append((p["id"], p["name"], p["name"]))
+                projects_enum.append((p["id"], p["name"], p["id"]))
         return projects_enum
 
     def enum_episodes(
@@ -40,7 +40,7 @@ class WmSelect(catalogue.WindowManagerModule):
         c = client.Client.this()
         if c.is_logged_in and self.project != "NONE":
             for e in c.fetch_list(f"projects/{self.project}/episodes"):
-                episodes_enum.append((e["id"], e["name"], e["name"]))
+                episodes_enum.append((e["id"], e["name"], e["id"]))
         return episodes_enum
 
     def enum_sequences(
@@ -55,10 +55,10 @@ class WmSelect(catalogue.WindowManagerModule):
         if c.is_logged_in:
             if self.episode != "NONE":
                 for s in c.fetch_list(f"episodes/{self.episode}/sequences"):
-                    sequences_enum.append((s["id"], s["name"], s["name"]))
+                    sequences_enum.append((s["id"], s["name"], s["id"]))
             elif self.project != "NONE":
                 for s in c.fetch_list(f"projects/{self.project}/sequences"):
-                    sequences_enum.append((s["id"], s["name"], s["name"]))
+                    sequences_enum.append((s["id"], s["name"], s["id"]))
         return sequences_enum
 
     def enum_shots(
@@ -73,13 +73,13 @@ class WmSelect(catalogue.WindowManagerModule):
         if c.is_logged_in:
             if self.sequence != "NONE":
                 for s in c.fetch_list(f"sequences/{self.sequence}/shots"):
-                    shots_enum.append((s["id"], s["name"], s["name"]))
+                    shots_enum.append((s["id"], s["name"], s["id"]))
             elif self.episode != "NONE":
                 for s in c.fetch_list(f"episodes/{self.episode}/shots"):
-                    shots_enum.append((s["id"], s["name"], s["name"]))
+                    shots_enum.append((s["id"], s["name"], s["id"]))
             elif self.project != "NONE":
                 for s in c.fetch_list(f"projects/{self.project}/shots"):
-                    shots_enum.append((s["id"], s["name"], s["name"]))
+                    shots_enum.append((s["id"], s["name"], s["id"]))
         return shots_enum
 
     def enum_tasks(
@@ -94,11 +94,11 @@ class WmSelect(catalogue.WindowManagerModule):
         if c.is_logged_in:
             if self.shot != "NONE":
                 for t in c.fetch_list(f"shots/{self.shot}/tasks"):
-                    task_enum = (t["id"], t["task_type_name"], t["task_type_name"])
+                    task_enum = (t["id"], t["task_type_name"], t["id"])
                     tasks_enum.append(task_enum)
             elif self.sequence != "NONE":
                 for t in c.fetch_list(f"sequences/{self.sequence}/tasks"):
-                    task_enum = (t["id"], t["task_type_name"], t["task_type_name"])
+                    task_enum = (t["id"], t["task_type_name"], t["id"])
                     tasks_enum.append(task_enum)
         return tasks_enum
 
