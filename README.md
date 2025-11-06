@@ -6,11 +6,14 @@ Blender add-on providing additional tools for the Schalotte project.
 
 Add this repository to your Blender Extensions. In Blender, navigate to:
 
-**Preferences > Get Extensions > Repositories > `+` > Add Remote Repository...**
-- URL: `https://raw.githubusercontent.com/Plyrolith/schalotte_tools/refs/heads/main/repository/index.json`
+> **Preferences** > **Get Extensions** > **Repositories** > **+** > **Add Remote Repository...**
+
+- URL:
+  `https://raw.githubusercontent.com/plyrolith/schalotte_tools/refs/heads/main/repository/index.json`
 - Check for Updates on Start: **True**.
 - Require Access Token: **False**.
-- Custom Directory: **Optional**. Set a path if you like to copy this add-on to a custom location on your machine.
+- Custom Directory: **Optional**.
+  Set a path if you like to copy this add-on to a custom location on your machine.
 
 ![Add Repository](img/add_repo.png)
 
