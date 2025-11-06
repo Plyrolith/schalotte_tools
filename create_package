@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tomllib
 
 
@@ -54,6 +55,7 @@ def create_package():
     if zip_file.exists():
         print("Removing existing .zip file.")
         zip_file.unlink()
+    zip_file.parent.mkdir(parents=True, exist_ok=True)
     print(f"Command: {cmd}")
     subprocess.run(cmd, cwd=current_dir)
 
@@ -66,11 +68,17 @@ def create_repository(repo_url: str):
     repo_dir = current_dir / "repository"
     build_dir = current_dir / "build"
 
-    # Use custom Blender path if it's not in path
-    if shutil.which("blender"):
-        cmd = ["blender"]
+    # Resolve virtualenv symlink to find Blender binary
+    python = Path(sys.executable).resolve()
+    bl_exec = python.parents[3] / "blender"
+
+    # Use virtualenv Blender if available
+    if bl_exec.is_file():
+        cmd = [bl_exec.as_posix()]
+
+    # Fall back to path definition
     else:
-        cmd = ["/var/opt/packages/programs/blender/4.5.4/platform-linux/blender"]
+        cmd = ["blender"]
 
     cmd += [
         "--command",
