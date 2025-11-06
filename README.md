@@ -36,7 +36,7 @@ Install the add-on by searching for "schalotte" and clicking **Install**.
 
 ```bash
 poetry env use /path/to/blender/4.5/python/bin/python3.11
-poetry install
+poetry install --no-root
 ```
 
 - Create a PR if you like to contribute!
