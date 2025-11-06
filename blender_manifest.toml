@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "schalotte_tools"
-version = "0.1.1"
+version = "0.1.2"
 name = "Schalotte Tools"
 tagline = "Blender tools for the Schalotte project"
 maintainer = "Tristan Weis"
