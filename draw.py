@@ -50,6 +50,8 @@ def shots(self: Panel, context: Context):
     s = wm_select.WmSelect.this()
     layout = self.layout
 
+    layout.row().operator(ops.SCHALOTTETOOL_OT_SelectFromFilepath.bl_idname)
+
     col = layout.column()
     col.use_property_split = True
     col.row().prop(s, "project")

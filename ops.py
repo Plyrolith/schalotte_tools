@@ -231,3 +231,25 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
         """
         schalotte.setup_storyboard(context.scene)
         return {"FINISHED"}
+
+
+@catalogue.bpy_register
+class SCHALOTTETOOL_OT_SelectFromFilepath(Operator):
+    """Guess the current context from the file path"""
+
+    bl_idname = "schalotte.select_from_filepath"
+    bl_label = "Select From File Path"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Guess the current context from the file path.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        wm_select.WmSelect.this().set_context_from_filepath()
+        return {"FINISHED"}
