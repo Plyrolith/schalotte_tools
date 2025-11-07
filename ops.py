@@ -221,6 +221,7 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
+        Set up the current scene for storyboarding tasks.
 
         Args:
             context (Context)
