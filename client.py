@@ -356,7 +356,7 @@ class Client(catalogue.PreferencesModule):
         if self.use_cache:
             response = CACHE.get(path)
             if response:
-                log.debug(f"CACHED {path}")
+                # log.debug(f"CACHED {path}")
                 if json_response:
                     return response.json()
                 return response.text
