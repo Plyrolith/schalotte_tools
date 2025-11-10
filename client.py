@@ -127,7 +127,7 @@ class Client(catalogue.PreferencesModule):
     def version(self) -> str:
         global VERSION
         if not VERSION:
-            for module in addon_utils.modules():
+            for module in addon_utils.modules():  # type: ignore
                 if module.__name__ == __package__:
                     version = module.bl_info.get("version", (0, 0, 0))
                     VERSION = ".".join(str(v) for v in version)
@@ -219,7 +219,7 @@ class Client(catalogue.PreferencesModule):
                         and request.json()["message"] == "Signature has expired"
                     ):
                         self.refresh_access_token()
-                        return status_code
+                        return status_code  # type: ignore
                     else:
                         self.log_out()
                         raise exceptions.NotAuthenticatedException(path)
@@ -604,7 +604,7 @@ class Client(catalogue.PreferencesModule):
         if self.refresh_token:
             headers["Authorization"] = f"Bearer {self.refresh_token}"
 
-        response = self.session.get(url, headers)
+        response = self.session.get(url, headers=headers)
         self.check_status(response, path)
 
         tokens = response.json()
