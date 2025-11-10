@@ -10,9 +10,6 @@ from . import casting, client, ops, session
 def login_ui(self: Panel | AddonPreferences, context: Context):
     """
     Draw the login UI.
-
-    Args:
-        context (Context)
     """
     layout = self.layout
     c = client.Client.this()
@@ -43,6 +40,14 @@ def setup_ui(self: Panel, context: Context):
     layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname)
 
 
+def preview_ui(self: Panel, context: Context):
+    """
+    Preview operator UI.
+    """
+    layout = self.layout
+    layout.row().operator(ops.SCHALOTTETOOL_OT_UploadPreview.bl_idname)
+
+
 def session_ui(self: Panel, context: Context):
     """
     Session selector and operator UI.
@@ -60,8 +65,6 @@ def session_ui(self: Panel, context: Context):
     col.row().prop(s, "shot")
     col.row().prop(s, "task")
 
-    layout.row().operator(ops.SCHALOTTETOOL_OT_UploadPreview.bl_idname)
-
 
 def casting_ui(self: Panel, context: Context):
     """
@@ -72,7 +75,7 @@ def casting_ui(self: Panel, context: Context):
 
     layout.row().operator(
         operator=ops.SCHALOTTETOOL_OT_FetchCasting.bl_idname,
-        text="Update Casting",
+        text="Update Casting" if c.links else "Fetch Casting",
         icon="FILE_REFRESH",
     )
 

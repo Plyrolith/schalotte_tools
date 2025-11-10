@@ -57,13 +57,30 @@ class SCHALOTTE_PT_setup(Panel):
 
 
 @catalogue.bpy_register
+class SCHALOTTE_PT_preview(Panel):
+    bl_idname = "SCHALOTTE_PT_preview"
+    bl_category = "Schalotte"
+    bl_label = "Preview"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_order = 3
+
+    @classmethod
+    def poll(cls, context: Context):
+        return session.Session.this().task
+
+    def draw(self, context: Context):
+        draw.preview_ui(self, context)
+
+
+@catalogue.bpy_register
 class SCHALOTTE_PT_casting(Panel):
     bl_idname = "SCHALOTTE_PT_casting"
     bl_category = "Schalotte"
     bl_label = "Casting"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 3
+    bl_order = 4
 
     @classmethod
     def poll(cls, context: Context):
