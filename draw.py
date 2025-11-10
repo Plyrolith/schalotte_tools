@@ -35,7 +35,7 @@ def login_ui(self: Panel | AddonPreferences, context: Context):
     layout.row().operator(op)
 
 
-def setup(self: Panel, context: Context):
+def setup_ui(self: Panel, context: Context):
     """
     File setup operators.
     """
