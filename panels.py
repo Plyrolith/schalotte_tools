@@ -12,7 +12,7 @@ from . import catalogue, client, draw, session
 @catalogue.bpy_register
 class SCHALOTTE_PT_login(Panel):
     bl_idname = "SCHALOTTE_PT_login"
-    bl_category = "Schalotte"
+    bl_category = "Schalotte Tools"
     bl_label = "Login"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -29,7 +29,7 @@ class SCHALOTTE_PT_login(Panel):
 @catalogue.bpy_register
 class SCHALOTTE_PT_session(Panel):
     bl_idname = "SCHALOTTE_PT_session"
-    bl_category = "Schalotte"
+    bl_category = "Schalotte Tools"
     bl_label = "Session"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -46,7 +46,7 @@ class SCHALOTTE_PT_session(Panel):
 @catalogue.bpy_register
 class SCHALOTTE_PT_setup(Panel):
     bl_idname = "SCHALOTTE_PT_setup"
-    bl_category = "Schalotte"
+    bl_category = "Schalotte Tools"
     bl_label = "Setup"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -59,7 +59,7 @@ class SCHALOTTE_PT_setup(Panel):
 @catalogue.bpy_register
 class SCHALOTTE_PT_preview(Panel):
     bl_idname = "SCHALOTTE_PT_preview"
-    bl_category = "Schalotte"
+    bl_category = "Schalotte Tools"
     bl_label = "Preview"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -76,7 +76,7 @@ class SCHALOTTE_PT_preview(Panel):
 @catalogue.bpy_register
 class SCHALOTTE_PT_casting(Panel):
     bl_idname = "SCHALOTTE_PT_casting"
-    bl_category = "Schalotte"
+    bl_category = "Schalotte Tools"
     bl_label = "Casting"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
