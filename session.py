@@ -9,14 +9,14 @@ import bpy
 import re
 from bpy.props import EnumProperty
 
-from . import catalogue, client, logger
+from . import catalog, client, logger
 
 
 log = logger.get_logger(__name__)
 
 
-@catalogue.bpy_window_manager
-class Session(catalogue.WindowManagerModule):
+@catalog.bpy_window_manager
+class Session(catalog.WindowManagerModule):
     """Module for selecting task session context"""
 
     module: str = "session"

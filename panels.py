@@ -6,10 +6,10 @@ if TYPE_CHECKING:
 
 from bpy.types import Panel
 
-from . import catalogue, client, draw, session
+from . import catalog, client, draw, session
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTE_PT_login(Panel):
     bl_idname = "SCHALOTTE_PT_login"
     bl_category = "Schalotte Tools"
@@ -26,7 +26,7 @@ class SCHALOTTE_PT_login(Panel):
         draw.login_ui(self, context)
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTE_PT_session(Panel):
     bl_idname = "SCHALOTTE_PT_session"
     bl_category = "Schalotte Tools"
@@ -43,7 +43,7 @@ class SCHALOTTE_PT_session(Panel):
         draw.session_ui(self, context)
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTE_PT_setup(Panel):
     bl_idname = "SCHALOTTE_PT_setup"
     bl_category = "Schalotte Tools"
@@ -56,7 +56,7 @@ class SCHALOTTE_PT_setup(Panel):
         draw.setup_ui(self, context)
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTE_PT_preview(Panel):
     bl_idname = "SCHALOTTE_PT_preview"
     bl_category = "Schalotte Tools"
@@ -73,7 +73,7 @@ class SCHALOTTE_PT_preview(Panel):
         draw.preview_ui(self, context)
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTE_PT_casting(Panel):
     bl_idname = "SCHALOTTE_PT_casting"
     bl_category = "Schalotte Tools"

@@ -11,7 +11,7 @@ import tempfile
 import bpy
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
-from . import casting, catalogue, client, logger, schalotte, session, utils
+from . import casting, catalog, client, logger, schalotte, session, utils
 
 log = logger.get_logger(__name__)
 
@@ -27,7 +27,7 @@ OPERATOR_RETURN_ITEMS = set[
 ]
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTETOOLS_OT_LogIn(Operator):
     """Log in to Kitsu"""
 
@@ -70,7 +70,7 @@ class SCHALOTTETOOLS_OT_LogIn(Operator):
             return {"CANCELLED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTETOOLS_OT_LogOut(Operator):
     """End the Kitsu session"""
 
@@ -106,7 +106,7 @@ class SCHALOTTETOOLS_OT_LogOut(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTETOOL_OT_UploadPreview(Operator):
     """Render a preview and upload it to selected task"""
 
@@ -181,7 +181,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         comment = c.post(f"actions/tasks/{task_id}/comment", data)
 
         # Render preview
-        temp_dir = Path(tempfile.mkdtemp(prefix=f"{catalogue.get_package_base()}_"))
+        temp_dir = Path(tempfile.mkdtemp(prefix=f"{catalog.get_package_base()}_"))
         log.info(f"Creating temp dir at {temp_dir}")
         stem = Path(bpy.data.filepath).stem
         if not stem:
@@ -210,7 +210,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
     """Set up the current scene for storyboarding"""
 
@@ -232,7 +232,7 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTETOOL_OT_GuessSessionFromFilepath(Operator):
     """Guess the current session task context from the file path"""
 
@@ -254,7 +254,7 @@ class SCHALOTTETOOL_OT_GuessSessionFromFilepath(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTETOOL_OT_FetchCasting(Operator):
     """Fetch the casting for the selected shot"""
 
@@ -291,7 +291,7 @@ class SCHALOTTETOOL_OT_FetchCasting(Operator):
         return {"FINISHED"}
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class SCHALOTTETOOL_OT_LinkAsset(Operator):
     """Link a cast asset to a scene."""
 

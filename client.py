@@ -16,7 +16,7 @@ import urllib
 import addon_utils
 from bpy.props import BoolProperty, StringProperty
 
-from . import catalogue, exceptions, logger
+from . import catalog, exceptions, logger
 
 
 log = logger.get_logger(__name__)
@@ -53,8 +53,8 @@ USER: dict | None = None
 VERSION: str | None = None
 
 
-@catalogue.bpy_preferences
-class Client(catalogue.PreferencesModule):
+@catalog.bpy_preferences
+class Client(catalog.PreferencesModule):
     """Kitsu REST client methods and properties"""
 
     module: str = "client"

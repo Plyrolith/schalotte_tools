@@ -1,5 +1,5 @@
 import bpy
-from . import casting, catalogue, client, logger, ops, panels, preferences, wm_container
+from . import casting, catalog, client, logger, ops, panels, preferences, wm_container
 
 
 log = logger.get_logger(__name__)
@@ -10,10 +10,10 @@ def register():
     Main registration.
     """
     log.info("Registering bpy classes")
-    catalogue.register_bpy()
+    catalog.register_bpy()
 
     # Register property groups for preferences pointers
-    for prefs_cls in catalogue.bpy_preferences_classes:
+    for prefs_cls in catalog.bpy_preferences_classes:
         log.info(f"Registering module {prefs_cls.module}")
 
         # Register class with bpy
@@ -33,7 +33,7 @@ def register():
     preferences.set_log_level()
 
     # Register property groups for window manager pointers
-    for wm_cls in catalogue.bpy_window_manager_classes:
+    for wm_cls in catalog.bpy_window_manager_classes:
         log.info(f"Registering window manager pointer {wm_cls.module}")
 
         # Register class with bpy
@@ -50,7 +50,7 @@ def register():
 
     # Set pointer on window manager
     wm_pointer = bpy.props.PointerProperty(type=wm_container.WmContainer)
-    setattr(bpy.types.WindowManager, catalogue.get_package_base(), wm_pointer)  # type: ignore
+    setattr(bpy.types.WindowManager, catalog.get_package_base(), wm_pointer)  # type: ignore
 
     # Try to get the current user to ensure login state
     client.Client.this().get_current_user()
@@ -70,4 +70,4 @@ def unregister():
 
     # Classes un-registration
     log.info("Unregistering bpy classes")
-    catalogue.deregister_bpy()
+    catalog.deregister_bpy()

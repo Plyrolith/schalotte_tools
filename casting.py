@@ -9,13 +9,13 @@ import bpy
 from bpy.props import CollectionProperty, IntProperty, StringProperty
 from bpy.types import PropertyGroup
 
-from . import catalogue, client, logger, schalotte
+from . import catalog, client, logger, schalotte
 
 
 log = logger.get_logger(__name__)
 
 
-@catalogue.bpy_register
+@catalog.bpy_register
 class CastingLink(PropertyGroup):
     """Single casting link, representing an asset"""
 
@@ -195,8 +195,8 @@ class CastingLink(PropertyGroup):
         return override_collection
 
 
-@catalogue.bpy_window_manager
-class Casting(catalogue.WindowManagerModule):
+@catalog.bpy_window_manager
+class Casting(catalog.WindowManagerModule):
     """Module fetch and manage shot breakdown casting"""
 
     module: str = "casting"
