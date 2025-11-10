@@ -40,3 +40,38 @@ poetry install --no-root
 ```
 
 - Create a PR if you like to contribute!
+
+## Structure
+
+The structure of this addon, sorted by functionality:
+
+### Initialization
+
+- `__init__.py`: Entrypoint for Blender add-on system. Blender calls `register()` and `unregister()` during (de)initialization.
+- `catalog.py`: Decorators and functions for automatic class registration. This module simplifies adding new classes to Blender via decorators.
+  - `@catalog.bpy.preferences_module`: Use this decorator to register a class to the addon preferences.
+    Make sure your class inherits from `PreferencesModule`. The class will be available at `bpy.context.preferences.addons['addon_name'].preferences.class_name`. Useful for long-term storage of properties that persist Blender sessions.
+  - `@catalog.bpy_window_manager`: Use this decorator to register a class to the window manager.
+    Make sure your class inherits from `WindowManagerModule`. The class will be available at `bpy.context.window_manager.addon_name.class_name`. Useful for storing temporary properties.
+  - `@catalog.bpy_register`: Use this decorator to register all other classes (operators, panels, etc.).
+
+### Basic
+
+- `logger`: Central logging definitions.
+- `exceptions`: Custom exception types, mostly for the REST API.
+
+### Blender Modules
+
+- `preferences.py`: Add-on preferences and container for other preferences modules.
+- `wm_container.py`: Container for all window manager modules.
+- `client.py`: Kitsu REST API, implemented as preferences module.
+- `session.py`: Window manager module for selecting the task context for the current session.
+- `casting.py`: Casting and asset linking functionality, implemented as window manager module.
+- `ops.py`: Operator classes.
+- `draw.py`: All draw functions.
+- `panels.py`: Panel class definitions, calling draw functions from the `draw.py` module.
+
+### Utilites
+
+- `utils.py`: Utilities for Blender.
+- `schalotte.py`: Utilities and definitions that are specific to the 'Schalotte' project.
