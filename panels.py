@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 
 from bpy.types import Panel
 
-from . import catalogue, client, draw
+from . import catalogue, client, draw, wm_select
 
 
 @catalogue.bpy_register
@@ -54,3 +54,21 @@ class SCHALOTTE_PT_shots(Panel):
 
     def draw(self, context: Context):
         draw.shots(self, context)
+
+
+@catalogue.bpy_register
+class SCHALOTTE_PT_casting(Panel):
+    bl_idname = "SCHALOTTE_PT_casting"
+    bl_category = "Schalotte"
+    bl_label = "Casting"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_order = 3
+
+    @classmethod
+    def poll(cls, context: Context):
+        s = wm_select.WmSelect.this()
+        return bool(s.project != "NONE" and s.shot != "NONE")
+
+    def draw(self, context: Context):
+        draw.casting_ui(self, context)

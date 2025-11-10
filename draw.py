@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bpy.types import AddonPreferences, Context, Panel
 
-from . import client, ops, wm_select
+from . import casting, client, ops, wm_select
 
 
 def login_ui(self: Panel | AddonPreferences, context: Context):
@@ -61,3 +61,59 @@ def shots(self: Panel, context: Context):
     col.row().prop(s, "task")
 
     layout.row().operator(ops.SCHALOTTETOOL_OT_UploadPreview.bl_idname)
+
+
+def casting_ui(self: Panel, context: Context):
+    """
+    Casting list and operator UI.
+    """
+    c = casting.Casting.this()
+    layout = self.layout
+
+    layout.row().operator(
+        operator=ops.SCHALOTTETOOL_OT_FetchCasting.bl_idname,
+        text="Update Casting",
+        icon="FILE_REFRESH",
+    )
+
+    col = layout.column()
+
+    col_atype_map = {}
+    for i, link in enumerate(c.links):
+        # Asset type box
+        col_atype = col_atype_map.get(link.asset_type_name)
+        if not col_atype:
+            col_atype = col.box().column(align=True)
+            col_atype_map[link.asset_type_name] = col_atype
+            row_atype = col_atype.row()
+            row_atype.alignment = "CENTER"
+            row_atype.label(text=link.asset_type_name)
+
+        # Asset label
+        row_asset = col_atype.box().row()
+        row_asset.label(text=link.asset_name)
+
+        # Link label and operator
+        row_link = row_asset.row(align=True)
+        row_link.enabled = bool(link.file_path)
+        row_link.label(
+            text="",
+            icon="LINKED" if link.library_name else "BLANK1",
+        )
+        row_link.operator(
+            operator=ops.SCHALOTTETOOL_OT_LinkAsset.bl_idname,
+            text="",
+            icon="PLUS" if link.library_name else "LINKED",
+        ).index = i
+
+    # Operator to link all missing
+    if c.links:
+        row_all = layout.row()
+        row_all.enabled = any(
+            link.file_path and not link.library_name for link in c.links
+        )
+        row_all.operator(
+            ops.SCHALOTTETOOL_OT_LinkAsset.bl_idname,
+            text="Link All Missing",
+            icon="LINKED",
+        ).index = -1

@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import CompositorNodeTree, Material, Scene, World
+    from bpy.types import Collection, CompositorNodeTree, Material, Scene, World
 
 
 from pathlib import Path
@@ -10,6 +10,104 @@ import bpy
 from . import logger
 
 log = logger.get_logger(__name__)
+
+
+ASSET_TYPE_MAP = {
+    "Character": "02_01_01_characters",
+    "Environment": "02_01_02_environments",
+    "Set Prop": "02_01_03_environmental_props",
+    "Hero Prop": "02_01_04_hero_props",
+}
+
+COLLECTIONS_MAP = {
+    "Character": "#CH",
+    "Environment": "#SET",
+    "Set Prop": "#SET",
+    "Hero Prop": "#PROP",
+}
+
+
+def find_project_root(root_name: str = "02_production") -> Path | None:
+    """
+    Find the project root path from the current file path.
+
+    Args:
+        root_name (str): Name of the root folder in the project structure
+
+    Returns:
+        Path | None
+    """
+    root_path = Path(bpy.data.filepath)
+    if not root_path:
+        log.error("Could not determine current file path")
+        return
+    for _ in range(5):
+        root_path = root_path.parent
+        if root_path.name == root_name:
+            break
+    else:
+        return
+    return root_path
+
+
+def find_asset_blend(asset_name: str, asset_type_name: str) -> Path | None:
+    """
+    Find the blend file path of an asset.
+
+    Args:
+        asset_name (str): Name of the asset
+        asset_type_name (str): Type of the asset
+
+    Returns:
+        Path | None: Blend file path of the asset, or None if not found
+    """
+    root_path = find_project_root()
+    if not root_path:
+        log.debug("Root path not found.")
+        return
+
+    # Check assets dir
+    assets_dir = root_path / "02_01_assets" / ASSET_TYPE_MAP[asset_type_name]
+    if not assets_dir.is_dir():
+        log.debug(f"Assets dir not found {assets_dir}")
+        return
+
+    # Generate asset prefix
+    asset_prefix = asset_name.split("_")[0]
+    if not asset_prefix:
+        log.debug(f"Could not determine prefix for {asset_name}")
+        return
+
+    # Find the asset dir based on prefix
+    for asset_dir in assets_dir.iterdir():
+        if asset_prefix in asset_dir.name:
+            break
+    else:
+        log.debug(f"Asset dir not found for {asset_name}")
+        return
+
+    # Get all .blend files and pick the first one, sorted in lowercase
+    blend_files = sorted(asset_dir.glob("*.blend"), key=lambda f: f.stem.lower())
+    if not blend_files:
+        log.debug(f"Asset file not found for {asset_name}")
+        return
+    asset_path = blend_files[0]
+    log.debug(f"Found {asset_name} at {asset_path.as_posix()}")
+    return asset_path
+
+
+def find_asset_type_collection(asset_type_name: str) -> Collection | None:
+    """
+    Find the collection for the given asset type, if it exists.
+
+    Args:
+        asset_type_name (str): The name of the asset type to find
+
+    Returns:
+        Collection | None: The collection for the asset type, or None if not found
+    """
+    target_name = COLLECTIONS_MAP[asset_type_name]
+    return bpy.data.collections.get(target_name)
 
 
 def ensure_storyboard_material(name: str = "SCH_stb_shad_ao_085") -> Material:
@@ -65,7 +163,6 @@ def ensure_storyboard_world() -> World | None:
         World | None
     """
     name = "SCH_stb_world"
-    root_name = "02_production"
     file_rel = Path(
         "02_02_storyboard",
         "SCH_stb_setup_Blendfile",
@@ -75,15 +172,8 @@ def ensure_storyboard_world() -> World | None:
     world = bpy.data.worlds.get(name)
     if not world:
         # Find the setup file
-        root_path = Path(bpy.data.filepath)
+        root_path = find_project_root()
         if not root_path:
-            log.error("Could not determine current file path")
-            return
-        for _ in range(5):
-            root_path = root_path.parent
-            if root_path.name == root_name:
-                break
-        else:
             log.error("Could not find production directory")
             return
         setup_file = root_path / file_rel
@@ -218,8 +308,14 @@ def setup_storyboard(scene: Scene | None = None):
     # Shader
     material = ensure_storyboard_material()
     for obj in scene.objects:
+        if obj.library or obj.override_library:
+            continue
         if hasattr(obj, "material_slots"):
             for i, slot in enumerate(obj.material_slots):
+                if slot.link == "DATA" and (
+                    obj.data.library or obj.data.override_library
+                ):
+                    continue
                 if slot.material is not material:
                     log.debug(f"Assigning storyboard material to {obj.name} [{i}].")
                     slot.material = material

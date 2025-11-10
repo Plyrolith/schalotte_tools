@@ -9,9 +9,9 @@ import pprint
 import tempfile
 
 import bpy
-from bpy.props import EnumProperty, StringProperty
+from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
-from . import catalogue, client, logger, schalotte, utils, wm_select
+from . import casting, catalogue, client, logger, schalotte, utils, wm_select
 
 log = logger.get_logger(__name__)
 
@@ -252,4 +252,141 @@ class SCHALOTTETOOL_OT_SelectFromFilepath(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
         wm_select.WmSelect.this().set_context_from_filepath()
+        return {"FINISHED"}
+
+
+@catalogue.bpy_register
+class SCHALOTTETOOL_OT_FetchCasting(Operator):
+    """Fetch the casting for the selected shot"""
+
+    bl_idname = "schalotte.fetch_casting"
+    bl_label = "Fetch Casting"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Allow only if a project and a shot are selected.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Project and shot are selected
+        """
+        s = wm_select.WmSelect.this()
+        return bool(s.project != "NONE" and s.shot != "NONE")
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Fetch the casting for the selected shot.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        s = wm_select.WmSelect.this()
+        casting.Casting.this().fetch_entity_breakdown(s.project, s.shot)
+        return {"FINISHED"}
+
+
+@catalogue.bpy_register
+class SCHALOTTETOOL_OT_LinkAsset(Operator):
+    """Link a cast asset to a scene."""
+
+    bl_idname = "schalotte.link_asset"
+    bl_label = "Link Asset"
+    bl_options = {"REGISTER", "UNDO"}
+
+    index: IntProperty(default=-1)
+    mode: EnumProperty(
+        items=(
+            (
+                "AUTO",
+                "Staging-based",
+                "Select based on 'animate' label",
+                "SPREADSHEET",
+                0,
+            ),
+            (
+                "INSTANCE",
+                "Instance",
+                "Create instancer object",
+                "EMPTY_AXIS",
+                1,
+            ),
+            (
+                "STATIC_OVERRIDE",
+                "Static Override",
+                "Create a static override",
+                "LIBRARY_DATA_OVERRIDE_NONEDITABLE",
+                2,
+            ),
+            (
+                "EDITABLE_OVERRIDE",
+                "Editable Override",
+                "Create a fully editable override",
+                "LIBRARY_DATA_OVERRIDE",
+                3,
+            ),
+        ),
+        name="Mode",
+        default="EDITABLE_OVERRIDE",
+    )
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Allow only if a project and a shot are selected.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Project and shot are selected
+        """
+        return bool(casting.Casting.this().links)
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Fetch the casting for the selected shot.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        c = casting.Casting.this()
+
+        # All unlinked assets
+        if self.index == -1:
+            links = [l for l in c.links if l.file_path and not l.library_name]
+
+        # Single asset
+        else:
+            links = [c.links[self.index]]
+
+        # Link based on mode
+        for link in links:
+            asset = None
+            match self.mode:
+                case "AUTO":
+                    if link.label == "animate":
+                        asset = link.add_override(make_editable=True)
+                    else:
+                        asset = link.add_instance()
+                case "INSTANCE":
+                    asset = link.add_instance()
+                case "STATIC_OVERRIDE":
+                    asset = link.add_override(make_editable=False)
+                case "EDITABLE_OVERRIDE":
+                    asset = link.add_override(make_editable=True)
+
+            # Report if failed
+            if not asset:
+                self.report({"ERROR"}, f"Unable to link asset {link.asset_name}")
+
         return {"FINISHED"}

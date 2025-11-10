@@ -1,5 +1,5 @@
 import bpy
-from . import catalogue, client, logger, ops, panels, preferences, wm_container
+from . import casting, catalogue, client, logger, ops, panels, preferences, wm_container
 
 
 log = logger.get_logger(__name__)
