@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bpy.types import AddonPreferences, Context, Panel
 
-from . import casting, client, ops, wm_select
+from . import casting, client, ops, session
 
 
 def login_ui(self: Panel | AddonPreferences, context: Context):
@@ -43,14 +43,14 @@ def setup(self: Panel, context: Context):
     layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname)
 
 
-def shots(self: Panel, context: Context):
+def session_ui(self: Panel, context: Context):
     """
-    Shot selector and operator UI.
+    Session selector and operator UI.
     """
-    s = wm_select.WmSelect.this()
+    s = session.Session.this()
     layout = self.layout
 
-    layout.row().operator(ops.SCHALOTTETOOL_OT_SelectFromFilepath.bl_idname)
+    layout.row().operator(ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_idname)
 
     col = layout.column()
     col.use_property_split = True

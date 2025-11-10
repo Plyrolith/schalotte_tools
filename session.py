@@ -16,10 +16,10 @@ log = logger.get_logger(__name__)
 
 
 @catalogue.bpy_window_manager
-class WmSelect(catalogue.WindowManagerModule):
-    """Module to store task selection progress"""
+class Session(catalogue.WindowManagerModule):
+    """Module for selecting task session context"""
 
-    module: str = "select"
+    module: str = "session"
 
     def enum_open_projects(
         self,
@@ -138,7 +138,7 @@ class WmSelect(catalogue.WindowManagerModule):
         description="Selected task",
     )
 
-    def set_context_from_filepath(self, file_path: str | Path | None = None):
+    def guess_from_filepath(self, file_path: str | Path | None = None):
         """
         Try to guess the current context based on given (or open) file path.
 

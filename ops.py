@@ -11,7 +11,7 @@ import tempfile
 import bpy
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.types import Operator
-from . import casting, catalogue, client, logger, schalotte, utils, wm_select
+from . import casting, catalogue, client, logger, schalotte, session, utils
 
 log = logger.get_logger(__name__)
 
@@ -142,8 +142,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
             bool: Logged in and task selected
         """
         return (
-            client.Client.this().is_logged_in
-            and wm_select.WmSelect.this().task != "NONE"
+            client.Client.this().is_logged_in and session.Session.this().task != "NONE"
         )
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
@@ -177,7 +176,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
 
         # Create new comment
         log.info(f"Creating a new comment.")
-        task_id = wm_select.WmSelect.this().task
+        task_id = session.Session.this().task
         data = {"task_status_id": self.task_status, "comment": self.comment}
         comment = c.post(f"actions/tasks/{task_id}/comment", data)
 
@@ -234,16 +233,16 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
 
 
 @catalogue.bpy_register
-class SCHALOTTETOOL_OT_SelectFromFilepath(Operator):
-    """Guess the current context from the file path"""
+class SCHALOTTETOOL_OT_GuessSessionFromFilepath(Operator):
+    """Guess the current session task context from the file path"""
 
-    bl_idname = "schalotte.select_from_filepath"
-    bl_label = "Select From File Path"
+    bl_idname = "schalotte.guess_session_from_filepath"
+    bl_label = "Guess From File Path"
     bl_options = {"REGISTER"}
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
-        Guess the current context from the file path.
+        Guess the current session task context from the file path.
 
         Args:
             context (Context)
@@ -251,7 +250,7 @@ class SCHALOTTETOOL_OT_SelectFromFilepath(Operator):
         Returns:
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
-        wm_select.WmSelect.this().set_context_from_filepath()
+        session.Session.this().guess_from_filepath()
         return {"FINISHED"}
 
 
@@ -274,7 +273,7 @@ class SCHALOTTETOOL_OT_FetchCasting(Operator):
         Returns:
             bool: Project and shot are selected
         """
-        s = wm_select.WmSelect.this()
+        s = session.Session.this()
         return bool(s.project != "NONE" and s.shot != "NONE")
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
@@ -287,7 +286,7 @@ class SCHALOTTETOOL_OT_FetchCasting(Operator):
         Returns:
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
-        s = wm_select.WmSelect.this()
+        s = session.Session.this()
         casting.Casting.this().fetch_entity_breakdown(s.project, s.shot)
         return {"FINISHED"}
 
