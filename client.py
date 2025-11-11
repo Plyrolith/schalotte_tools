@@ -352,8 +352,11 @@ class Client(catalog.PreferencesModule):
             Any: The request result
         """
         global CACHE
+        skip_cache = False
+        if params:
+            skip_cache = params.pop("skip_cache", False)
         path = self.build_path_with_params(path, params)
-        if self.use_cache:
+        if not skip_cache and self.use_cache:
             response = CACHE.get(path)
             if response:
                 # log.debug(f"CACHED {path}")
