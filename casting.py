@@ -216,7 +216,8 @@ class Casting(catalog.WindowManagerModule):
         self.links.clear()
 
         casting = client.Client.this().fetch_list(
-            f"projects/{project_id}/entities/{entity_id}/casting"
+            f"projects/{project_id}/entities/{entity_id}/casting",
+            {"skip_cache": True},
         )
 
         for link_dict in casting:
