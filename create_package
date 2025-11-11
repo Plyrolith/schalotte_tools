@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tomllib
+import zipfile
 
 
 def create_package():
@@ -43,20 +44,39 @@ def create_package():
                 continue
             blockset.add(line)
 
-    # Generate the command
-    cmd = ["zip", "-r", zip_file, ".", "-x"]
-    for block in blockset:
-        if block.endswith("/"):
-            block += "*"
-        cmd.append(block)
-
     # Pack the .zip file
     if zip_file.exists():
         print("Removing existing .zip file.")
         zip_file.unlink()
     zip_file.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Command: {cmd}")
-    subprocess.run(cmd, cwd=current_dir)
+
+    # Create the zip file
+    print(f"Creating .zip file {zip_file}")
+    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
+        for file_path in current_dir.rglob("*"):
+            if file_path.is_file():
+                # Get relative path from current_dir
+                relative_path = file_path.relative_to(current_dir)
+
+                # Check if file or any parent directory matches blockset
+                path_parts = relative_path.parts
+                should_skip = False
+
+                for blocked in blockset:
+                    blocked = blocked.rstrip("/")
+                    # Check exact match or if file is under blocked directory
+                    if (
+                        str(relative_path) == blocked
+                        or str(relative_path).startswith(blocked + "/")
+                        or blocked in path_parts
+                    ):
+                        should_skip = True
+                        break
+
+                if not should_skip:
+                    # Add file to zip with relative path
+                    print(f"Adding {relative_path}")
+                    zf.write(file_path, arcname=relative_path)
 
 
 def create_repository(repo_url: str):
