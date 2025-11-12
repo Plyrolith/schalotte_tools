@@ -202,6 +202,7 @@ class Casting(catalog.WindowManagerModule):
     module: str = "casting"
 
     links: CollectionProperty(type=CastingLink)
+    breakdown_file: StringProperty(name="Breakdown File", subtype="FILE_PATH")
 
     if TYPE_CHECKING:
         links: list[CastingLink]
@@ -214,6 +215,7 @@ class Casting(catalog.WindowManagerModule):
             link: CastingLink
 
         self.links.clear()
+        self.breakdown_file = bpy.data.filepath
 
         casting = client.Client.this().fetch_list(
             f"projects/{project_id}/entities/{entity_id}/casting",

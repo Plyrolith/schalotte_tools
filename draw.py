@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bpy.types import AddonPreferences, Context, Panel
 
+import bpy
 from . import casting, client, ops, session
 
 
@@ -78,6 +79,9 @@ def casting_ui(self: Panel, context: Context):
         text="Update Casting" if c.links else "Fetch Casting",
         icon="FILE_REFRESH",
     )
+
+    if c.breakdown_file != bpy.data.filepath:
+        return
 
     col = layout.column()
 
