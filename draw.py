@@ -83,8 +83,12 @@ def casting_ui(self: Panel, context: Context):
     if c.breakdown_file != bpy.data.filepath:
         return
 
-    col = layout.column()
+    # Append for storyboard tasks
+    s = session.Session.this()
+    is_storyboard = s.storyboard_task and s.storyboard_task == s.task
+    link_icon = "APPEND_BLEND" if is_storyboard else "LINKED"
 
+    col = layout.column()
     col_atype_map = {}
     for i, link in enumerate(c.links):
         # Asset type box
@@ -105,13 +109,15 @@ def casting_ui(self: Panel, context: Context):
         row_link.enabled = bool(link.file_path)
         row_link.label(
             text="",
-            icon="LINKED" if link.library_name else "BLANK1",
+            icon=link_icon if link.library_name else "BLANK1",
         )
-        row_link.operator(
+        op_link = row_link.operator(
             operator=ops.SCHALOTTETOOL_OT_LinkAsset.bl_idname,
             text="",
-            icon="PLUS" if link.library_name else "LINKED",
-        ).index = i
+            icon="PLUS" if link.library_name else link_icon,
+        )
+        op_link.index = i
+        op_link.mode = "APPEND" if is_storyboard else "AUTO"
 
     # Operator to link all missing
     if c.links:
@@ -119,8 +125,10 @@ def casting_ui(self: Panel, context: Context):
         row_all.enabled = any(
             link.file_path and not link.library_name for link in c.links
         )
-        row_all.operator(
-            ops.SCHALOTTETOOL_OT_LinkAsset.bl_idname,
-            text="Link All Missing",
-            icon="LINKED",
-        ).index = -1
+        op_all = row_all.operator(
+            operator=ops.SCHALOTTETOOL_OT_LinkAsset.bl_idname,
+            text="Append All Missing" if is_storyboard else "Link All Missing",
+            icon=link_icon,
+        )
+        op_all.index = -1
+        op_all.mode = "APPEND" if is_storyboard else "AUTO"

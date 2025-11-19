@@ -330,6 +330,13 @@ class SCHALOTTETOOL_OT_LinkAsset(Operator):
                 "LIBRARY_DATA_OVERRIDE",
                 3,
             ),
+            (
+                "APPEND",
+                "Append",
+                "Append as fully localized asset",
+                "APPEND_BLEND",
+                4,
+            ),
         ),
         name="Mode",
         default="EDITABLE_OVERRIDE",
@@ -383,6 +390,8 @@ class SCHALOTTETOOL_OT_LinkAsset(Operator):
                     asset = link.add_override(make_editable=False)
                 case "EDITABLE_OVERRIDE":
                     asset = link.add_override(make_editable=True)
+                case "APPEND":
+                    asset = link.append()
 
             # Report if failed
             if not asset:
