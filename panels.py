@@ -67,7 +67,7 @@ class SCHALOTTE_PT_preview(Panel):
 
     @classmethod
     def poll(cls, context: Context):
-        return session.Session.this().task
+        return bool(session.Session.this().task)
 
     def draw(self, context: Context):
         draw.preview_ui(self, context)
@@ -85,7 +85,7 @@ class SCHALOTTE_PT_casting(Panel):
     @classmethod
     def poll(cls, context: Context):
         s = session.Session.this()
-        return bool(s.project != "NONE" and s.shot != "NONE")
+        return bool(s.project and s.shot)
 
     def draw(self, context: Context):
         draw.casting_ui(self, context)

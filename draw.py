@@ -60,11 +60,11 @@ def session_ui(self: Panel, context: Context):
 
     col = layout.column()
     col.use_property_split = True
-    col.row().prop(s, "project")
-    col.row().prop(s, "episode")
-    col.row().prop(s, "sequence")
-    col.row().prop(s, "shot")
-    col.row().prop(s, "task")
+    col.row().prop(s, "project_id")
+    col.row().prop(s, "episode_id")
+    col.row().prop(s, "sequence_id")
+    col.row().prop(s, "shot_id")
+    col.row().prop(s, "task_id")
 
 
 def casting_ui(self: Panel, context: Context):
@@ -85,7 +85,7 @@ def casting_ui(self: Panel, context: Context):
 
     # Append for storyboard tasks
     s = session.Session.this()
-    is_storyboard = s.storyboard_task and s.storyboard_task == s.task
+    is_storyboard = s.task and s.task.get("task_type_name", "").lower() == "storyboard"
     link_icon = "APPEND_BLEND" if is_storyboard else "LINKED"
 
     col = layout.column()

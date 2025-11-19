@@ -21,7 +21,7 @@ class Session(catalog.WindowManagerModule):
 
     module: str = "session"
 
-    def enum_open_projects(
+    def enum_open_project_ids(
         self,
         context: Context | None = None,
     ) -> list[tuple[str, str, str]]:
@@ -37,7 +37,7 @@ class Session(catalog.WindowManagerModule):
 
         return projects_enum
 
-    def enum_episodes(
+    def enum_episode_ids(
         self,
         context: Context | None = None,
     ) -> list[tuple[str, str, str]]:
@@ -47,13 +47,13 @@ class Session(catalog.WindowManagerModule):
         episodes_enum = [("NONE", "None", "No episode selected")]
 
         c = client.Client.this()
-        if c.is_logged_in and self.project != "NONE":
-            for e in c.fetch_list(f"projects/{self.project}/episodes"):
+        if c.is_logged_in and self.project_id != "NONE":
+            for e in c.fetch_list(f"projects/{self.project_id}/episodes"):
                 episodes_enum.append((e["id"], e["name"], e["id"]))
 
         return episodes_enum
 
-    def enum_sequences(
+    def enum_sequence_ids(
         self,
         context: Context | None = None,
     ) -> list[tuple[str, str, str]]:
@@ -64,10 +64,10 @@ class Session(catalog.WindowManagerModule):
 
         c = client.Client.this()
         if c.is_logged_in:
-            if self.episode != "NONE":
-                path = f"episodes/{self.episode}/sequences"
-            elif self.project != "NONE":
-                path = f"projects/{self.project}/sequences"
+            if self.episode_id != "NONE":
+                path = f"episodes/{self.episode_id}/sequences"
+            elif self.project_id != "NONE":
+                path = f"projects/{self.project_id}/sequences"
             else:
                 return sequences_enum
 
@@ -76,7 +76,7 @@ class Session(catalog.WindowManagerModule):
 
         return sequences_enum
 
-    def enum_shots(
+    def enum_shot_ids(
         self,
         context: Context | None = None,
     ) -> list[tuple[str, str, str]]:
@@ -87,12 +87,12 @@ class Session(catalog.WindowManagerModule):
 
         c = client.Client.this()
         if c.is_logged_in:
-            if self.sequence != "NONE":
-                path = f"sequences/{self.sequence}/shots"
-            elif self.episode != "NONE":
-                path = f"episodes/{self.episode}/shots"
-            elif self.project != "NONE":
-                path = f"projects/{self.project}/shots"
+            if self.sequence_id != "NONE":
+                path = f"sequences/{self.sequence_id}/shots"
+            elif self.episode_id != "NONE":
+                path = f"episodes/{self.episode_id}/shots"
+            elif self.project_id != "NONE":
+                path = f"projects/{self.project_id}/shots"
             else:
                 return shots_enum
 
@@ -101,7 +101,7 @@ class Session(catalog.WindowManagerModule):
 
         return shots_enum
 
-    def enum_tasks(
+    def enum_task_ids(
         self,
         context: Context | None = None,
     ) -> list[tuple[str, str, str]]:
@@ -113,10 +113,10 @@ class Session(catalog.WindowManagerModule):
 
         c = client.Client.this()
         if c.is_logged_in:
-            if self.shot != "NONE":
-                path = f"shots/{self.shot}/tasks"
-            elif self.sequence != "NONE":
-                path = f"sequences/{self.sequence}/tasks"
+            if self.shot_id != "NONE":
+                path = f"shots/{self.shot_id}/tasks"
+            elif self.sequence_id != "NONE":
+                path = f"sequences/{self.sequence_id}/tasks"
             else:
                 return tasks_enum
 
@@ -128,37 +128,55 @@ class Session(catalog.WindowManagerModule):
 
         return tasks_enum
 
-    project: EnumProperty(
+    project_id: EnumProperty(
         name="Project",
-        items=enum_open_projects,
+        items=enum_open_project_ids,
         description="Selected project",
     )
 
-    episode: EnumProperty(
+    episode_id: EnumProperty(
         name="Episode",
-        items=enum_episodes,
+        items=enum_episode_ids,
         description="Selected episode",
     )
 
-    sequence: EnumProperty(
+    sequence_id: EnumProperty(
         name="Sequence",
-        items=enum_sequences,
+        items=enum_sequence_ids,
         description="Selected sequence",
     )
 
-    shot: EnumProperty(
+    shot_id: EnumProperty(
         name="Shot",
-        items=enum_shots,
+        items=enum_shot_ids,
         description="Selected shot",
     )
 
-    task: EnumProperty(
+    task_id: EnumProperty(
         name="Task",
-        items=enum_tasks,
+        items=enum_task_ids,
         description="Selected task",
     )
 
-    storyboard_task: StringProperty(name="Storyboard Task")
+    @property
+    def project(self) -> dict | None:
+        return client.STORE.get(self.project_id)
+
+    @property
+    def episode(self) -> dict | None:
+        return client.STORE.get(self.episode_id)
+
+    @property
+    def sequence(self) -> dict | None:
+        return client.STORE.get(self.sequence_id)
+
+    @property
+    def shot(self) -> dict | None:
+        return client.STORE.get(self.shot_id)
+
+    @property
+    def task(self) -> dict | None:
+        return client.STORE.get(self.task_id)
 
     def guess_from_filepath(self, file_path: str | Path | None = None):
         """
@@ -200,66 +218,66 @@ class Session(catalog.WindowManagerModule):
         log.debug(f"Detected task: {path_task}")
 
         # Project
-        projects_enum = self.enum_open_projects()
+        projects_enum = self.enum_open_project_ids()
         if len(projects_enum) < 2:
             log.error("No open projects found.")
             return
         for project_enum in projects_enum[1:]:
             if path_pr in project_enum[1].lower():
-                self.project = project_enum[0]
+                self.project_id = project_enum[0]
                 break
         else:
-            self.project = projects_enum[1][0]
+            self.project_id = projects_enum[1][0]
 
         # Episode
-        episodes_enum = self.enum_episodes()
+        episodes_enum = self.enum_episode_ids()
         if len(episodes_enum) < 2:
             log.error("No episodes found")
         for episode_enum in episodes_enum[1:]:
             if path_ep == episode_enum[1].lower():
-                self.episode = episode_enum[0]
+                self.episode_id = episode_enum[0]
                 break
         else:
             log.error(f"Could not find episode {path_ep}.")
 
         # Sequence
-        sequences_enum = self.enum_sequences()
+        sequences_enum = self.enum_sequence_ids()
         if len(sequences_enum) < 2:
             log.error("No sequences found")
         for sequence_enum in sequences_enum[1:]:
             if path_sq == sequence_enum[1].lower():
-                self.sequence = sequence_enum[0]
+                self.sequence_id = sequence_enum[0]
                 break
         else:
             log.error(f"Could not find sequence {path_sq}.")
 
         # Shot
-        shots_enum = self.enum_shots()
+        shots_enum = self.enum_shot_ids()
         if len(shots_enum) < 2:
             log.error("No shots found")
         for shot_enum in shots_enum[1:]:
             # Real shot
             if path_sh:
                 if path_sh == shot_enum[1].lower():
-                    self.shot = shot_enum[0]
+                    self.shot_id = shot_enum[0]
                     break
             # Sequence shot
             else:
                 if shot_enum[1].startswith("_"):
-                    self.shot = shot_enum[0]
+                    self.shot_id = shot_enum[0]
                     break
         else:
             log.error(f"Could not find shot {path_sh or path_sq}.")
 
         # Task
-        tasks_enum = self.enum_tasks()
+        tasks_enum = self.enum_task_ids()
         for task_enum in tasks_enum[1:]:
             task_name = task_enum[1].lower().strip()
             if " " in task_name:
                 task_name = task_name.split(" ")[0]
 
             if task_name in path_task:
-                self.task = task_enum[0]
+                self.task_id = task_enum[0]
                 break
         else:
             log.error("Could not find task.")

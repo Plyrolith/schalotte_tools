@@ -114,7 +114,10 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
     bl_label = "Upload Preview"
     bl_options = {"REGISTER"}
 
-    def enum_task_statuses(self, context: Context | None) -> list[tuple[str, str, str]]:
+    def enum_task_status_ids(
+        self,
+        context: Context | None,
+    ) -> list[tuple[str, str, str]]:
         """
         Enumerate task status items.
         """
@@ -127,7 +130,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
 
         return [(ts["id"], ts["name"], ts["id"]) for ts in task_statuses]
 
-    task_status: EnumProperty(name="Task Status", items=enum_task_statuses)
+    task_status_id: EnumProperty(name="Task Status", items=enum_task_status_ids)
     comment: StringProperty(name="Comment")
 
     @classmethod
@@ -141,9 +144,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         Returns:
             bool: Logged in and task selected
         """
-        return (
-            client.Client.this().is_logged_in and session.Session.this().task != "NONE"
-        )
+        return client.Client.this().is_logged_in and bool(session.Session.this().task)
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -168,7 +169,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         Returns:
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
-        if self.task_status == "NONE":
+        if self.task_status_id == "NONE":
             log.error("No task status for feedback request found.")
             return {"CANCELLED"}
 
@@ -176,8 +177,8 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
 
         # Create new comment
         log.info(f"Creating a new comment.")
-        task_id = session.Session.this().task
-        data = {"task_status_id": self.task_status, "comment": self.comment}
+        task_id = session.Session.this().task_id
+        data = {"task_status_id": self.task_status_id, "comment": self.comment}
         comment = c.post(f"actions/tasks/{task_id}/comment", data)
 
         # Render preview
@@ -274,7 +275,7 @@ class SCHALOTTETOOL_OT_FetchCasting(Operator):
             bool: Project and shot are selected
         """
         s = session.Session.this()
-        return bool(s.project != "NONE" and s.shot != "NONE")
+        return bool(s.project and s.shot)
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -287,7 +288,7 @@ class SCHALOTTETOOL_OT_FetchCasting(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
         s = session.Session.this()
-        casting.Casting.this().fetch_entity_breakdown(s.project, s.shot)
+        casting.Casting.this().fetch_entity_breakdown(s.project_id, s.shot_id)
         return {"FINISHED"}
 
 
