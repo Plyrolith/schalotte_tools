@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import Iterable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bpy.types import Context
@@ -48,6 +48,7 @@ requests.models.complexjson.dumps = functools.partial(  # type: ignore
 )
 
 CACHE: dict[str, requests.Response] = {}
+STORE: dict[str, dict] = {}
 SESSION = requests.Session()
 USER: dict | None = None
 VERSION: str | None = None
@@ -361,7 +362,7 @@ class Client(catalog.PreferencesModule):
             if response:
                 # log.debug(f"CACHED {path}")
                 if json_response:
-                    return response.json()
+                    return self.store_response_json(response)
                 return response.text
 
         url = self.get_full_url(path)
@@ -373,7 +374,7 @@ class Client(catalog.PreferencesModule):
             CACHE[path] = response
 
         if json_response:
-            return response.json()
+            return self.store_response_json(response)
         return response.text
 
     def get_api_version(self) -> str:
@@ -568,7 +569,7 @@ class Client(catalog.PreferencesModule):
         self.check_status(response, path)
 
         try:
-            result = response.json()
+            result = self.store_response_json(response)
         except json.JSONDecodeError:
             log.warning(response.text)
             raise
@@ -591,7 +592,7 @@ class Client(catalog.PreferencesModule):
         response = self.session.put(url, json=data, headers=self.make_auth_header())
         self.check_status(response, path)
 
-        return response.json()
+        return self.store_response_json(response)
 
     def refresh_access_token(self) -> dict:
         """
@@ -650,6 +651,41 @@ class Client(catalog.PreferencesModule):
         self.is_logged_in = tokens.get("login", False)
         self.user = tokens.get("user", None)
 
+    @staticmethod
+    def store_response_json(response: requests.Response) -> Any:
+        """
+        Convert a response to json and store any content dictionaries with an ID key.
+
+        Args:
+            response (requests.Response): The response object
+
+        Parameters
+            response (requests.Response): The response object
+        """
+
+        def do_store(item: dict):
+            """
+            Store given dict if it has an ID key.
+            """
+            global STORE
+            if isinstance(item, dict):
+                identifier = item.get("id")
+                if identifier:
+                    STORE[identifier] = item
+
+        # To JSON
+        response_json = response.json()
+
+        # Iterable
+        if isinstance(response_json, Iterable):
+            for item in response_json:
+                do_store(item)
+            return response_json
+
+        # Single dict
+        do_store(response_json)
+        return response_json
+
     def update(self, path: str, id: str, data: dict) -> dict:
         """
         Update an entry for given model, id and data.
@@ -694,7 +730,7 @@ class Client(catalog.PreferencesModule):
         self.check_status(response, path)
 
         try:
-            result = response.json()
+            result = self.store_response_json(response)
         except json.JSONDecodeError:
             log.exception(response.text)
             raise
