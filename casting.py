@@ -130,7 +130,7 @@ class CastingLink(PropertyGroup):
 
     def add_instance(self) -> Object | None:
         """
-        Add an instance of this asset to given collection.
+        Add an instance of this asset's collection.
 
         Args:
             Collection
@@ -158,7 +158,7 @@ class CastingLink(PropertyGroup):
         view_layer: ViewLayer | None = None,
     ) -> Collection | None:
         """
-        Add an override of this asset to given collection.
+        Add an override of this asset's collection.
 
         Args:
             make_editable (bool): Whether to make the instance editable
@@ -193,6 +193,65 @@ class CastingLink(PropertyGroup):
         target_collection.children.link(override_collection)
 
         return override_collection
+
+    def append(self) -> Collection | None:
+        """
+        Append this asset's collection.
+
+        Returns:
+            Collection | None: The override collection
+        """
+        asset_collection = self.get_or_link_asset_collection()
+        if not asset_collection:
+            return
+        target_collection = self.get_target_collection()
+        if not target_collection:
+            return
+
+        # Remove "Appended Data" collection, if it exists
+        appended_data = bpy.data.collections.get("Appended Data")
+        if appended_data:
+            bpy.data.collections.remove(appended_data)
+
+        path = Path(self.file_path).resolve()
+
+        # Append
+        with bpy.context.temp_override(  # type: ignore
+            window=bpy.data.window_managers[0].windows[0],
+        ):
+            bpy.ops.wm.append(
+                directory=path.parent.as_posix(),
+                filename=f"{path.name}/Collection/{asset_collection.name}",
+                link=False,
+                do_reuse_local_id=False,
+                autoselect=False,
+                active_collection=False,
+                instance_collections=False,
+                instance_object_data=True,
+                set_fake=False,
+                use_recursive=True,
+            )
+
+        # Find "Appended Data" collection
+        appended_data = bpy.data.collections.get("Appended Data")
+        if not appended_data:
+            log.error(f"Could not locate appended data for {self.asset_name}")
+            return
+
+        # Find new collection in "Appended Data" collection
+        try:
+            appended_collection = appended_data.children[0]
+        except IndexError:
+            log.error(f"Could not find appended collection for {self.asset_name}")
+            return
+
+        # Link to target
+        target_collection.children.link(appended_collection)
+
+        # Remove "Appended Data" collection
+        bpy.data.collections.remove(appended_data)
+
+        return appended_collection
 
 
 @catalog.bpy_window_manager

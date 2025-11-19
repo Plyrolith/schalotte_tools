@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 from pathlib import Path
 import bpy
 import re
-from bpy.props import EnumProperty
+from bpy.props import EnumProperty, StringProperty
 
 from . import catalog, client, logger
 
@@ -29,10 +29,12 @@ class Session(catalog.WindowManagerModule):
         Get the open projects enumerator.
         """
         projects_enum = [("NONE", "None", "No project selected")]
+
         c = client.Client.this()
         if c.is_logged_in:
             for p in c.fetch_list("projects/open"):
                 projects_enum.append((p["id"], p["name"], p["id"]))
+
         return projects_enum
 
     def enum_episodes(
@@ -43,10 +45,12 @@ class Session(catalog.WindowManagerModule):
         Get the list of episodes.
         """
         episodes_enum = [("NONE", "None", "No episode selected")]
+
         c = client.Client.this()
         if c.is_logged_in and self.project != "NONE":
             for e in c.fetch_list(f"projects/{self.project}/episodes"):
                 episodes_enum.append((e["id"], e["name"], e["id"]))
+
         return episodes_enum
 
     def enum_sequences(
@@ -57,14 +61,19 @@ class Session(catalog.WindowManagerModule):
         Get the list of sequences.
         """
         sequences_enum = [("NONE", "None", "No sequence selected")]
+
         c = client.Client.this()
         if c.is_logged_in:
             if self.episode != "NONE":
-                for s in c.fetch_list(f"episodes/{self.episode}/sequences"):
-                    sequences_enum.append((s["id"], s["name"], s["id"]))
+                path = f"episodes/{self.episode}/sequences"
             elif self.project != "NONE":
-                for s in c.fetch_list(f"projects/{self.project}/sequences"):
-                    sequences_enum.append((s["id"], s["name"], s["id"]))
+                path = f"projects/{self.project}/sequences"
+            else:
+                return sequences_enum
+
+            for s in c.fetch_list(path):
+                sequences_enum.append((s["id"], s["name"], s["id"]))
+
         return sequences_enum
 
     def enum_shots(
@@ -75,17 +84,21 @@ class Session(catalog.WindowManagerModule):
         Get the list of shots.
         """
         shots_enum = [("NONE", "None", "No shot selected")]
+
         c = client.Client.this()
         if c.is_logged_in:
             if self.sequence != "NONE":
-                for s in c.fetch_list(f"sequences/{self.sequence}/shots"):
-                    shots_enum.append((s["id"], s["name"], s["id"]))
+                path = f"sequences/{self.sequence}/shots"
             elif self.episode != "NONE":
-                for s in c.fetch_list(f"episodes/{self.episode}/shots"):
-                    shots_enum.append((s["id"], s["name"], s["id"]))
+                path = f"episodes/{self.episode}/shots"
             elif self.project != "NONE":
-                for s in c.fetch_list(f"projects/{self.project}/shots"):
-                    shots_enum.append((s["id"], s["name"], s["id"]))
+                path = f"projects/{self.project}/shots"
+            else:
+                return shots_enum
+
+            for s in c.fetch_list(path):
+                shots_enum.append((s["id"], s["name"], s["id"]))
+
         return shots_enum
 
     def enum_tasks(
@@ -96,16 +109,23 @@ class Session(catalog.WindowManagerModule):
         Get the list of episodes.
         """
         tasks_enum = [("NONE", "None", "No task selected")]
+        self.storyboard_task = ""
+
         c = client.Client.this()
         if c.is_logged_in:
             if self.shot != "NONE":
-                for t in c.fetch_list(f"shots/{self.shot}/tasks"):
-                    task_enum = (t["id"], t["task_type_name"], t["id"])
-                    tasks_enum.append(task_enum)
+                path = f"shots/{self.shot}/tasks"
             elif self.sequence != "NONE":
-                for t in c.fetch_list(f"sequences/{self.sequence}/tasks"):
-                    task_enum = (t["id"], t["task_type_name"], t["id"])
-                    tasks_enum.append(task_enum)
+                path = f"sequences/{self.sequence}/tasks"
+            else:
+                return tasks_enum
+
+            for t in c.fetch_list(path):
+                if t["task_type_name"].lower() == "storyboard":
+                    self.storyboard_task = t["id"]
+                task_enum = (t["id"], t["task_type_name"], t["id"])
+                tasks_enum.append(task_enum)
+
         return tasks_enum
 
     project: EnumProperty(
@@ -137,6 +157,8 @@ class Session(catalog.WindowManagerModule):
         items=enum_tasks,
         description="Selected task",
     )
+
+    storyboard_task: StringProperty(name="Storyboard Task")
 
     def guess_from_filepath(self, file_path: str | Path | None = None):
         """
