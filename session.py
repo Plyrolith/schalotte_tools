@@ -15,27 +15,35 @@ from . import catalog, client, logger
 log = logger.get_logger(__name__)
 
 
+NOT_LOGGED_IN = [("NONE", "Unavailable", "Please log in first")]
+NO_PROJECT = [("NONE", "Project Required", "No project selected")]
+
+
 @catalog.bpy_window_manager
 class Session(catalog.WindowManagerModule):
     """Module for selecting task session context"""
 
     module: str = "session"
 
-    def enum_open_project_ids(
+    def enum_project_ids(
         self,
         context: Context | None = None,
     ) -> list[tuple[str, str, str]]:
         """
         Get the open projects enumerator.
         """
-        projects_enum = [("NONE", "None", "No project selected")]
-
         c = client.Client.this()
-        if c.is_logged_in:
-            for p in c.fetch_list("projects/open"):
-                projects_enum.append((p["id"], p["name"], p["id"]))
+        if not c.is_logged_in:
+            return NOT_LOGGED_IN
 
-        return projects_enum
+        projects_enum = []
+        for p in c.fetch_list("projects/open"):
+            projects_enum.append((p["id"], p["name"], p["id"]))
+
+        if projects_enum:
+            return projects_enum
+
+        return [("NONE", "No Projects Available", "No open projects found")]
 
     def enum_episode_ids(
         self,
@@ -44,14 +52,21 @@ class Session(catalog.WindowManagerModule):
         """
         Get the list of episodes.
         """
-        episodes_enum = [("NONE", "None", "No episode selected")]
-
         c = client.Client.this()
-        if c.is_logged_in and self.project_id != "NONE":
-            for e in c.fetch_list(f"projects/{self.project_id}/episodes"):
-                episodes_enum.append((e["id"], e["name"], e["id"]))
+        if not c.is_logged_in:
+            return NOT_LOGGED_IN
 
-        return episodes_enum
+        if self.project_id == "NONE":
+            return NO_PROJECT
+
+        episodes_enum = []
+        for e in c.fetch_list(f"projects/{self.project_id}/episodes"):
+            episodes_enum.append((e["id"], e["name"], e["id"]))
+
+        if episodes_enum:
+            return [("NONE", "All", "No episode selected")] + episodes_enum
+
+        return [("NONE", "No Episodes Available", "No episodes found in project")]
 
     def enum_sequence_ids(
         self,
@@ -60,21 +75,25 @@ class Session(catalog.WindowManagerModule):
         """
         Get the list of sequences.
         """
-        sequences_enum = [("NONE", "None", "No sequence selected")]
-
         c = client.Client.this()
-        if c.is_logged_in:
-            if self.episode_id != "NONE":
-                path = f"episodes/{self.episode_id}/sequences"
-            elif self.project_id != "NONE":
-                path = f"projects/{self.project_id}/sequences"
-            else:
-                return sequences_enum
+        if not c.is_logged_in:
+            return NOT_LOGGED_IN
 
-            for s in c.fetch_list(path):
-                sequences_enum.append((s["id"], s["name"], s["id"]))
+        if self.episode_id != "NONE":
+            path = f"episodes/{self.episode_id}/sequences"
+        elif self.project_id != "NONE":
+            path = f"projects/{self.project_id}/sequences"
+        else:
+            return NO_PROJECT
 
-        return sequences_enum
+        sequences_enum = []
+        for s in c.fetch_list(path):
+            sequences_enum.append((s["id"], s["name"], s["id"]))
+
+        if sequences_enum:
+            return [("NONE", "All", "No sequence selected")] + sequences_enum
+
+        return [("NONE", "No Sequences Available", "No sequences found for selection")]
 
     def enum_shot_ids(
         self,
@@ -83,23 +102,27 @@ class Session(catalog.WindowManagerModule):
         """
         Get the list of shots.
         """
-        shots_enum = [("NONE", "None", "No shot selected")]
-
         c = client.Client.this()
-        if c.is_logged_in:
-            if self.sequence_id != "NONE":
-                path = f"sequences/{self.sequence_id}/shots"
-            elif self.episode_id != "NONE":
-                path = f"episodes/{self.episode_id}/shots"
-            elif self.project_id != "NONE":
-                path = f"projects/{self.project_id}/shots"
-            else:
-                return shots_enum
+        if not c.is_logged_in:
+            return NOT_LOGGED_IN
 
-            for s in c.fetch_list(path):
-                shots_enum.append((s["id"], s["name"], s["id"]))
+        if self.sequence_id != "NONE":
+            path = f"sequences/{self.sequence_id}/shots"
+        elif self.episode_id != "NONE":
+            path = f"episodes/{self.episode_id}/shots"
+        elif self.project_id != "NONE":
+            path = f"projects/{self.project_id}/shots"
+        else:
+            return NO_PROJECT
 
-        return shots_enum
+        shots_enum = []
+        for s in c.fetch_list(path):
+            shots_enum.append((s["id"], s["name"], s["id"]))
+
+        if shots_enum:
+            return [("NONE", "None", "No shot selected")] + shots_enum
+
+        return [("NONE", "No Shots Available", "No shots found for selection")]
 
     def enum_task_ids(
         self,
@@ -108,48 +131,66 @@ class Session(catalog.WindowManagerModule):
         """
         Get the list of episodes.
         """
-        tasks_enum = [("NONE", "None", "No task selected")]
-        self.storyboard_task = ""
-
         c = client.Client.this()
-        if c.is_logged_in:
-            if self.shot_id != "NONE":
-                path = f"shots/{self.shot_id}/tasks"
-            elif self.sequence_id != "NONE":
-                path = f"sequences/{self.sequence_id}/tasks"
-            else:
-                return tasks_enum
+        if not c.is_logged_in:
+            return NOT_LOGGED_IN
 
-            for t in c.fetch_list(path):
-                if t["task_type_name"].lower() == "storyboard":
-                    self.storyboard_task = t["id"]
-                task_enum = (t["id"], t["task_type_name"], t["id"])
-                tasks_enum.append(task_enum)
+        if self.shot_id != "NONE":
+            path = f"shots/{self.shot_id}/tasks"
+        elif self.sequence_id != "NONE":
+            path = f"sequences/{self.sequence_id}/tasks"
+        else:
+            return [("NONE", "Shot or Sequence Required", "Select shot or sequence")]
 
-        return tasks_enum
+        tasks_enum = []
+        for t in c.fetch_list(path):
+            task_enum = (t["id"], t["task_type_name"], t["id"])
+            tasks_enum.append(task_enum)
+
+        if tasks_enum:
+            return [("NONE", "Select", "No task selected")] + tasks_enum
+
+        return [("NONE", "No Tasks Available", "No tasks found for selected")]
+
+    def update_project_id(self, context):
+        self.episode_id = "NONE"
+
+    def update_episode_id(self, context):
+        self.sequence_id = "NONE"
+
+    def update_sequence_id(self, context):
+        self.shot_id = "NONE"
+        self.task_id = "NONE"
+
+    def update_shot_id(self, context):
+        self.task_id = "NONE"
 
     project_id: EnumProperty(
         name="Project",
-        items=enum_open_project_ids,
+        items=enum_project_ids,
         description="Selected project",
+        update=update_project_id,
     )
 
     episode_id: EnumProperty(
         name="Episode",
         items=enum_episode_ids,
         description="Selected episode",
+        update=update_episode_id,
     )
 
     sequence_id: EnumProperty(
         name="Sequence",
         items=enum_sequence_ids,
         description="Selected sequence",
+        update=update_sequence_id,
     )
 
     shot_id: EnumProperty(
         name="Shot",
         items=enum_shot_ids,
         description="Selected shot",
+        update=update_shot_id,
     )
 
     task_id: EnumProperty(
@@ -218,7 +259,7 @@ class Session(catalog.WindowManagerModule):
         log.debug(f"Detected task: {path_task}")
 
         # Project
-        projects_enum = self.enum_open_project_ids()
+        projects_enum = self.enum_project_ids()
         if len(projects_enum) < 2:
             log.error("No open projects found.")
             return
