@@ -52,6 +52,11 @@ class SCHALOTTE_PT_setup(Panel):
     bl_region_type = "UI"
     bl_order = 2
 
+    @classmethod
+    def poll(cls, context) -> bool:
+        s = session.Session.this()
+        return bool(s.task and s.task.get("task_type_name", "").lower() == "storyboard")
+
     def draw(self, context: Context):
         draw.setup_ui(self, context)
 
@@ -67,7 +72,10 @@ class SCHALOTTE_PT_preview(Panel):
 
     @classmethod
     def poll(cls, context: Context):
-        return bool(session.Session.this().task)
+        s = session.Session.this()
+        return bool(
+            s.task and not s.task.get("task_type_name", "").lower() == "storyboard"
+        )
 
     def draw(self, context: Context):
         draw.preview_ui(self, context)
