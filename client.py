@@ -47,7 +47,7 @@ requests.models.complexjson.dumps = functools.partial(  # type: ignore
     cls=CustomJSONEncoder,
 )
 
-CACHE: dict[str, requests.Response] = {}
+CACHE: dict[str, Any] = {}
 STORE: dict[str, dict] = {}
 SESSION = requests.Session()
 USER: dict | None = None
@@ -353,28 +353,40 @@ class Client(catalog.PreferencesModule):
             Any: The request result
         """
         global CACHE
+
+        # Figure out whether cache should be used
         skip_cache = False
         if params:
             skip_cache = params.pop("skip_cache", False)
-        path = self.build_path_with_params(path, params)
-        if not skip_cache and self.use_cache:
-            response = CACHE.get(path)
-            if response:
-                # log.debug(f"CACHED {path}")
-                if json_response:
-                    return self.store_response_json(response)
-                return response.text
+        if not json_response:
+            skip_cache = True
+        if not self.use_cache:
+            skip_cache = True
 
+        # Build full path
+        path = self.build_path_with_params(path, params)
+
+        # Check cache
+        if not skip_cache:
+            response = CACHE.get(path)
+            if response is not None:
+                # Too spammy
+                # log.debug(f"CACHED {path}")
+                return response
+
+        # Run REST GET
         url = self.get_full_url(path)
         log.debug(f"GET {url}")
         response = self.session.get(url, headers=self.make_auth_header())
         self.check_status(response, path)
 
-        if self.use_cache:
-            CACHE[path] = response
-
+        # Store and cache JSON
         if json_response:
-            return self.store_response_json(response)
+            response = self.store_response_json(response)
+            if not skip_cache:
+                CACHE[path] = response
+            return response
+
         return response.text
 
     def get_api_version(self) -> str:
