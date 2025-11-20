@@ -136,15 +136,17 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
     @classmethod
     def poll(cls, context) -> bool:
         """
-        Allow only if the client is logged in and a task is selected.
+        Allow only file is saved, the client is logged in and a task is selected.
 
         Args:
             context (Context)
 
         Returns:
-            bool: Logged in and task selected
+            bool: File is saved, client logged in and task selected
         """
-        return client.Client.this().is_logged_in and bool(session.Session.this().task)
+        return client.Client.this().is_logged_in and bool(
+            bpy.data.filepath and session.Session.this().task
+        )
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
@@ -222,16 +224,20 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
     @classmethod
     def poll(cls, context) -> bool:
         """
-        Only if the current task is of the 'storyboard' type.
+        Only if file is saved and the current task is of the 'storyboard' type.
 
         Args:
             context (Context)
 
         Returns:
-            bool: Task is active and type is 'storyboard'
+            bool: File is saved, task is active and type is 'storyboard'
         """
         s = session.Session.this()
-        return bool(s.task and s.task.get("task_type_name", "").lower() == "storyboard")
+        return bool(
+            bpy.data.filepath
+            and s.task
+            and s.task.get("task_type_name", "").lower() == "storyboard"
+        )
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -261,6 +267,19 @@ class SCHALOTTETOOL_OT_GuessSessionFromFilepath(Operator):
     bl_idname = "schalotte.guess_session_from_filepath"
     bl_label = "Guess From File Path"
     bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Only if the current file is saved.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: File is saved
+        """
+        return bool(bpy.data.filepath)
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """

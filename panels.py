@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bpy.types import Context
 
+import bpy
 from bpy.types import Panel
 
 from . import catalog, client, draw, session
@@ -55,7 +56,11 @@ class SCHALOTTE_PT_setup(Panel):
     @classmethod
     def poll(cls, context) -> bool:
         s = session.Session.this()
-        return bool(s.task and s.task.get("task_type_name", "").lower() == "storyboard")
+        return bool(
+            bpy.data.filepath
+            and s.task
+            and s.task.get("task_type_name", "").lower() == "storyboard"
+        )
 
     def draw(self, context: Context):
         draw.setup_ui(self, context)
@@ -74,7 +79,9 @@ class SCHALOTTE_PT_preview(Panel):
     def poll(cls, context: Context):
         s = session.Session.this()
         return bool(
-            s.task and not s.task.get("task_type_name", "").lower() == "storyboard"
+            bpy.data.filepath
+            and s.task
+            and not s.task.get("task_type_name", "").lower() == "storyboard"
         )
 
     def draw(self, context: Context):
