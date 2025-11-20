@@ -56,7 +56,12 @@ def session_ui(self: Panel, context: Context):
     s = session.Session.this()
     layout = self.layout
 
-    layout.row().operator(ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_idname)
+    if bpy.data.filepath:
+        layout.row().operator(ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_idname)
+    else:
+        row = layout.row()
+        row.alignment = "CENTER"
+        row.label(text="File Has Not Been Saved", icon="ERROR")
 
     col = layout.column()
     col.use_property_split = True
