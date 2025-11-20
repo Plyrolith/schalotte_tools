@@ -260,15 +260,15 @@ class Session(catalog.WindowManagerModule):
 
         # Project
         projects_enum = self.enum_project_ids()
-        if len(projects_enum) < 2:
+        if len(projects_enum) < 1:
             log.error("No open projects found.")
             return
-        for project_enum in projects_enum[1:]:
+        for project_enum in projects_enum:
             if path_pr in project_enum[1].lower():
                 self.project_id = project_enum[0]
                 break
         else:
-            self.project_id = projects_enum[1][0]
+            self.project_id = projects_enum[0][0]
 
         # Episode
         episodes_enum = self.enum_episode_ids()
