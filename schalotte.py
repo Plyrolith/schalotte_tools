@@ -468,7 +468,7 @@ def setup_storyliner(scene: Scene | None = None):
     if logo_path and logo_path.is_file():
         stamp.logoUsed = True
         stamp.logoMode = "CUSTOM"
-        stamp.logoFilepath = logo_path.resolve().as_posix()
+        stamp.logoFilepath = bpy.path.relpath(logo_path.as_posix())
         stamp.logoScaleH = 0.06
         stamp.logoPosNormX = 0.012
         stamp.logoPosNormY = 0.01

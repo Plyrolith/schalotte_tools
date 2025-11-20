@@ -257,6 +257,7 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
             msg = "Storyliner is not enabled, skipping setup."
             self.report({"WARNING"}, msg)
             log.warning(msg)
+        bpy.ops.file.make_paths_relative()
         return {"FINISHED"}
 
 
@@ -436,6 +437,9 @@ class SCHALOTTETOOL_OT_LinkAsset(Operator):
 
             # Report if failed
             if not asset:
-                self.report({"ERROR"}, f"Unable to link asset {link.asset_name}")
+                msg = f"Unable to link asset {link.asset_name}"
+                log.error(msg)
+                self.report({"ERROR"}, msg)
 
+        bpy.ops.file.make_paths_relative()
         return {"FINISHED"}
