@@ -21,7 +21,7 @@ After creation, feel free to rename the repository to "Schalotte Tools" by doubl
 
 Install the add-on by searching for "schalotte" and clicking **Install**.
 
-![Add Repository](img/install_addon.png)
+![Install Add-on](img/install_addon.png)
 
 # Development
 
