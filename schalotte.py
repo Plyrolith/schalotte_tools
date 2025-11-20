@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 from pathlib import Path
 import bpy
-from . import logger
+from . import client, logger, session
 
 log = logger.get_logger(__name__)
 
@@ -347,3 +347,122 @@ def setup_storyboard(scene: Scene | None = None):
 
     # World
     scene.world = ensure_storyboard_world()
+
+
+def setup_storyliner(scene: Scene | None = None):
+    """
+    Set up storyliner settings for the given Blender scene.
+    """
+    if not scene:
+        scene = bpy.context.scene
+
+    # Find storyliner addon in case it's installed from a repo
+    for addon in bpy.context.preferences.addons:
+        if "storyliner" in addon.module:
+            module = addon.module
+            break
+    else:
+        module = "storyliner"
+
+    storyliner_addon = bpy.context.preferences.addons.get(module)
+    if storyliner_addon:
+        prefs = storyliner_addon.preferences
+        prefs.naming_shot_format = "sh####"  # type: ignore
+        prefs.camNamePrefix = "cam_"  # type: ignore
+        bpy.ops.wm.save_userpref()
+    else:
+        log.warning("Could not find Storyliner add-on preferences.")
+
+    scene_props = scene.WkStoryLiner_props  # type: ignore
+    scene_props.use_project_settings = False
+
+    # Sequence
+    s = session.Session.this()
+    prefix = "STB"
+    if s.episode:
+        episode_name = s.episode.get("name")
+        if episode_name:
+            prefix += f"_{episode_name}"
+    scene_props.render_sequence_prefix = f"{prefix}_"
+
+    if s.sequence:
+        sequence_name = s.sequence.get("name", "sq")
+        scene_props.sequence_name = sequence_name
+        # scene.name = sequence_name
+    scene_props.naming_shot_format = "sh####"
+
+    # Stamp info
+    stamp = scene.WKSL_StampInfo_Settings  # type: ignore
+    stamp.stampInfoRenderMode = "OVER"
+    stamp.stampRenderResOver_percentage = 86.0
+    stamp.projectNameUsed = True
+
+    # Logo
+    project_root = find_project_root()
+    stamp.logoUsed = False
+    if project_root:
+        logo_path = (
+            project_root
+            / "02_02_storyboard"
+            / "SCH_stb_setup_Blendfile"
+            / "SCH_stb_setup_material"
+            / "schalotte_schriftzug_weiss.png"
+        )
+    else:
+        logo_path = None
+        log.warning("Could not find project root for logo setup.")
+    if logo_path and logo_path.is_file():
+        stamp.logoUsed = True
+        stamp.logoMode = "CUSTOM"
+        stamp.logoFilepath = logo_path.resolve().as_posix()
+        stamp.logoScaleH = 0.06
+        stamp.logoPosNormX = 0.012
+        stamp.logoPosNormY = 0.01
+        stamp.projectNameUsed = False
+
+    else:
+        # Fall back to project title
+        log.warning(f"Project logo does not exist: {logo_path}")
+        stamp.projectNameUsed = True
+        if s.project:
+            stamp.projectName = s.project.get("name", "").upper()
+
+    # Metadata
+    stamp.sceneUsed = False
+    stamp.sequenceUsed = False
+    stamp.takeUsed = False
+    stamp.shotUsed = True
+    stamp.cameraUsed = False
+    stamp.cameraLensUsed = True
+    stamp.videoFrameUsed = True
+    stamp.dateUsed = False
+    stamp.timeUsed = False
+    stamp.notesUsed = False
+    stamp.cornerNoteUsed = False
+
+    # User
+    user = client.Client.this().user
+    if user:
+        stamp.bottomNoteUsed = True
+        name = user.get("full_name")
+        if not name:
+            name = user.get("email")
+        stamp.bottomNote = name
+    else:
+        stamp.bottomNoteUsed = False
+
+    # File
+    stamp.filenameUsed = False
+    stamp.filepathUsed = False
+
+    # Text
+    stamp.textColor = (1, 1, 1, 1)
+    stamp.automaticTextSize = True
+    stamp.fontScaleHNorm = 0.02
+    stamp.interlineHNorm = 0.015
+    stamp.extPaddingNorm = 0.015
+    stamp.extPaddingHorizNorm = 0.02
+    stamp.stampPropertyLabel = True
+
+    # Initialize
+    bpy.ops.wksl_stamp_info.initialize()  # type: ignore
