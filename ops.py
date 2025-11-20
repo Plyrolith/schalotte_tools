@@ -219,6 +219,20 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
     bl_label = "Storyboard Setup"
     bl_options = {"REGISTER", "UNDO"}
 
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Only if the current task is of the 'storyboard' type.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Task is active and type is 'storyboard'
+        """
+        s = session.Session.this()
+        return bool(s.task and s.task.get("task_type_name", "").lower() == "storyboard")
+
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
         Set up the current scene for storyboarding tasks.
@@ -229,7 +243,14 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
         Returns:
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
-        schalotte.setup_storyboard(context.scene)
+        scene = context.scene
+        schalotte.setup_storyboard(scene)
+        if hasattr(scene, "WkStoryLiner_props"):
+            schalotte.setup_storyliner(scene)
+        else:
+            msg = "Storyliner is not enabled, skipping setup."
+            self.report({"WARNING"}, msg)
+            log.warning(msg)
         return {"FINISHED"}
 
 
