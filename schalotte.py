@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 from pathlib import Path
 import bpy
-from . import client, logger, session
+from . import client, logger, session, utils
 
 log = logger.get_logger(__name__)
 
@@ -25,6 +25,12 @@ COLLECTIONS_MAP = {
     "Set Prop": "#SET",
     "Hero Prop": "#PROP",
 }
+
+STB_SETUP_FILE_REL = Path(
+    "02_02_storyboard",
+    "SCH_stb_setup_Blendfile",
+    "SCH_s01_e0x_sq0x_STB_setup.blend",
+)
 
 
 def find_project_root(root_name: str = "02_production") -> Path | None:
@@ -110,6 +116,57 @@ def find_asset_type_collection(asset_type_name: str) -> Collection | None:
     return bpy.data.collections.get(target_name)
 
 
+def ensure_camera_collection(scene: Scene | None = None) -> Collection | None:
+    """
+    Append the camera collection if it doesn't exist yet.
+
+    Args:
+        scene (Scene | None): Scene to be set up, defaults to context scene
+
+    Returns:
+        Collection | None
+    """
+    col_name = "cam.001"
+    cam_col = bpy.data.collections.get(col_name)
+    if not cam_col:
+        # Find the setup file
+        root_path = find_project_root()
+        if not root_path:
+            log.error("Could not find production directory")
+            return
+        setup_file = root_path / STB_SETUP_FILE_REL
+        if not setup_file.is_file():
+            log.error(f"File not found: {setup_file}")
+            return
+
+        # Append the camera collection
+        log.debug(f"Appending: {setup_file}")
+        cam_col = utils.append_collection(setup_file, col_name)
+        if not cam_col:
+            log.error(f"Failed to append camera collection: {col_name}")
+            return
+        cam_col.color_tag = "COLOR_08"
+
+    # Add to #CAM collection
+    parent_name = "#CAM"
+    parent_col = bpy.data.collections.get(parent_name)
+    if not parent_col:
+        parent_col = bpy.data.collections.new(parent_name)
+        parent_col.color_tag = "COLOR_08"
+
+    # Add camera collection to #CAM
+    if cam_col not in set(parent_col.children):
+        parent_col.children.link(cam_col)
+
+    # Ensure #CAM collection is in scene
+    if not scene:
+        scene = bpy.context.scene
+    if parent_col not in set(scene.collection.children):
+        scene.collection.children.link(parent_col)
+
+    return cam_col
+
+
 def ensure_storyboard_material(name: str = "SCH_stb_shad_ao_085") -> Material:
     """
     Create the default storyboard material, if it doesn't exist yet.
@@ -162,21 +219,15 @@ def ensure_storyboard_world() -> World | None:
     Returns:
         World | None
     """
-    name = "SCH_stb_world"
-    file_rel = Path(
-        "02_02_storyboard",
-        "SCH_stb_setup_Blendfile",
-        "SCH_s01_e0x_sq0x_STB_setup.blend",
-    )
-
-    world = bpy.data.worlds.get(name)
+    world_name = "SCH_stb_world"
+    world = bpy.data.worlds.get(world_name)
     if not world:
         # Find the setup file
         root_path = find_project_root()
         if not root_path:
             log.error("Could not find production directory")
             return
-        setup_file = root_path / file_rel
+        setup_file = root_path / STB_SETUP_FILE_REL
         if not setup_file.is_file():
             log.error(f"File not found: {setup_file}")
             return
@@ -188,7 +239,7 @@ def ensure_storyboard_world() -> World | None:
         ):
             bpy.ops.wm.append(
                 directory=setup_file.parent.as_posix(),
-                filename=f"{setup_file.name}/World/{name}",
+                filename=f"{setup_file.name}/World/{world_name}",
                 link=False,
                 do_reuse_local_id=False,
                 autoselect=False,
@@ -198,7 +249,7 @@ def ensure_storyboard_world() -> World | None:
                 set_fake=True,
                 use_recursive=True,
             )
-            world = bpy.data.worlds.get(name)
+            world = bpy.data.worlds.get(world_name)
         if not world:
             log.error(f"Failed to import world from {setup_file}")
             return
@@ -344,6 +395,9 @@ def setup_storyboard(scene: Scene | None = None):
                 if slot.material is not material:
                     log.debug(f"Assigning storyboard material to {obj.name} [{i}].")
                     slot.material = material
+
+    # Camera
+    ensure_camera_collection(scene)
 
     # World
     scene.world = ensure_storyboard_world()

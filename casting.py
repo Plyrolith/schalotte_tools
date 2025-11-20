@@ -9,7 +9,7 @@ import bpy
 from bpy.props import CollectionProperty, IntProperty, StringProperty
 from bpy.types import PropertyGroup
 
-from . import catalog, client, logger, schalotte
+from . import catalog, client, logger, schalotte, utils
 
 
 log = logger.get_logger(__name__)
@@ -208,50 +208,15 @@ class CastingLink(PropertyGroup):
         if not target_collection:
             return
 
-        # Remove "Appended Data" collection, if it exists
-        appended_data = bpy.data.collections.get("Appended Data")
-        if appended_data:
-            bpy.data.collections.remove(appended_data)
-
-        path = Path(self.file_path).resolve()
-
-        # Append
-        with bpy.context.temp_override(  # type: ignore
-            window=bpy.data.window_managers[0].windows[0],
-        ):
-            bpy.ops.wm.append(
-                directory=path.parent.as_posix(),
-                filename=f"{path.name}/Collection/{asset_collection.name}",
-                link=False,
-                do_reuse_local_id=False,
-                autoselect=False,
-                active_collection=False,
-                instance_collections=False,
-                instance_object_data=True,
-                set_fake=False,
-                use_recursive=True,
-            )
-
-        # Find "Appended Data" collection
-        appended_data = bpy.data.collections.get("Appended Data")
-        if not appended_data:
-            log.error(f"Could not locate appended data for {self.asset_name}")
-            return
-
-        # Find new collection in "Appended Data" collection
-        try:
-            appended_collection = appended_data.children[0]
-        except IndexError:
-            log.error(f"Could not find appended collection for {self.asset_name}")
+        # Append collection
+        col = utils.append_collection(self.file_path, asset_collection.name)
+        if not col:
             return
 
         # Link to target
-        target_collection.children.link(appended_collection)
+        target_collection.children.link(col)
 
-        # Remove "Appended Data" collection
-        bpy.data.collections.remove(appended_data)
-
-        return appended_collection
+        return col
 
 
 @catalog.bpy_window_manager

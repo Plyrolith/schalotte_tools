@@ -2,10 +2,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import Scene
+    from bpy.types import Collection, Scene
 
 import bpy
 from pathlib import Path
+
+from . import logger
+
+
+log = logger.get_logger(__name__)
 
 
 def render_scene(
@@ -83,3 +88,57 @@ def render_scene(
         use_viewport=False,
         scene=scene.name,
     )
+
+
+def append_collection(file_path: Path | str, name: str) -> Collection | None:
+    """
+    Append a collection from given .blend file by name.
+
+    Args:
+        file_path (Path | str): Path of the .blend file to append from
+        name (str): Name of the collection to append
+
+    Returns:
+        Collection | None: Appended collection, if successful
+    """
+    # Remove "Appended Data" collection, if it exists
+    appended_data = bpy.data.collections.get("Appended Data")
+    if appended_data:
+        bpy.data.collections.remove(appended_data)
+
+    path = Path(file_path)
+
+    # Append
+    with bpy.context.temp_override(  # type: ignore
+        window=bpy.data.window_managers[0].windows[0],
+    ):
+        bpy.ops.wm.append(
+            directory=path.parent.as_posix(),
+            filename=f"{path.name}/Collection/{name}",
+            link=False,
+            do_reuse_local_id=False,
+            autoselect=False,
+            active_collection=False,
+            instance_collections=False,
+            instance_object_data=True,
+            set_fake=False,
+            use_recursive=True,
+        )
+
+    # Find "Appended Data" collection
+    appended_data = bpy.data.collections.get("Appended Data")
+    if not appended_data:
+        log.error(f"Could not locate appended data for {name}")
+        return
+
+    # Find new collection in "Appended Data" collection
+    try:
+        col = appended_data.children[0]
+    except IndexError:
+        log.error(f"Could not find appended collection for {name}")
+        return
+
+    # Remove "Appended Data" collection
+    bpy.data.collections.remove(appended_data)
+
+    return col
