@@ -305,12 +305,37 @@ def setup_storyboard(scene: Scene | None = None):
             scene.collection.children.link(col)
         col.color_tag = color  # type: ignore
 
+    # Get all character objects to exclude from re-shading
+    char_col = bpy.data.collections.get("#CH")
+    if char_col:
+        char_objs = set(char_col.all_objects)
+    else:
+        char_objs = set()
+        log.warning("Could not find #CH collection")
+
     # Shader
     material = ensure_storyboard_material()
     for obj in scene.objects:
+        # Skip characters
+        if obj in char_objs:
+            continue
+        # Skip linked and overrides
         if obj.library or obj.override_library:
             continue
-        if hasattr(obj, "material_slots"):
+        # Skip widgets
+        if obj.name.lower().startswith("wgt"):
+            continue
+        # Only shadable objects
+        if obj.type in {"CURVE", "MESH", "SURFACE", "META", "FONT"}:
+            # Create a slot if none are present
+            if not obj.material_slots:
+                with bpy.context.temp_override(object=obj):  # type: ignore
+                    try:
+                        bpy.ops.object.material_slot_add()
+                    except RuntimeError:
+                        log.warning(f"Could not add material slot for {obj.name}")
+                        continue
+            # Set material on all slots
             for i, slot in enumerate(obj.material_slots):
                 if slot.link == "DATA" and (
                     obj.data.library or obj.data.override_library
