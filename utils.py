@@ -180,3 +180,24 @@ def append_collection(file_path: Path | str, name: str) -> Collection | None:
     bpy.data.collections.remove(appended_data)
 
     return col
+
+
+def get_sequencer_max_channel(scene: Scene | None = None) -> int:
+    """
+    Get the highest channel number of all strips within a scene sequencer.
+
+    Parameters:
+        scene (Scene | None): Scene of the sequencer, use context if none is given
+
+    Returns:
+        int: Highest used channel number
+    """
+    if not scene:
+        scene = bpy.context.scene
+
+    channel_offset = 0
+    for strip in scene.sequence_editor.strips:
+        if strip.channel > channel_offset:
+            channel_offset = strip.channel
+
+    return channel_offset

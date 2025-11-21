@@ -9,9 +9,17 @@ import pprint
 import tempfile
 
 import bpy
-from bpy.props import EnumProperty, IntProperty, StringProperty
-from bpy.types import Operator
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import (
+    BoolProperty,
+    CollectionProperty,
+    EnumProperty,
+    IntProperty,
+    StringProperty,
+)
+from bpy.types import Operator, OperatorFileListElement
 from . import casting, catalog, client, logger, schalotte, session, utils
+
 
 log = logger.get_logger(__name__)
 
@@ -372,6 +380,111 @@ class SCHALOTTETOOL_OT_GuessSessionFromFilepath(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
         session.Session.this().guess_from_filepath()
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_AddSoundStrips(Operator, ImportHelper):  # type: ignore
+    """Import selected audio strips into the sequencer"""
+
+    bl_idname = "schalotte.add_sound_strips"
+    bl_label = "Import Audio Takes"
+    bl_options = {"REGISTER", "UNDO"}
+
+    directory: StringProperty(name="Directory", subtype="DIR_PATH")
+    files: CollectionProperty(
+        name="File Paths",
+        type=OperatorFileListElement,
+        options={"HIDDEN", "SKIP_SAVE"},
+    )
+    filter_glob: StringProperty(
+        default=f"*{';*'.join(bpy.path.extensions_audio)}",  # type: ignore
+        options={"HIDDEN"},
+    )
+    use_current_frame: BoolProperty(name="Use Current Frame")
+    relative_path: BoolProperty(name="Relative Path", default=True)
+    skip_existing: BoolProperty(name="Skip Existing", default=True)
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:  # type: ignore
+        """
+        Start folder selection.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        file_path = bpy.data.filepath
+        if file_path:
+            layout_takes = Path(file_path).parents[1] / "layout_takes"
+            if layout_takes.is_dir():
+                self.directory = layout_takes.as_posix()
+            else:
+                self.directory = Path(file_path).parent.as_posix()
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Import selected audio strips into the sequencer
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        # Get sequencer
+        sequence_editor = context.scene.sequence_editor_create()
+
+        # Get channel
+        channel = utils.get_sequencer_max_channel(context.scene) + 1
+
+        # Get start frame
+        if self.use_current_frame:
+            current_frame = context.scene.frame_current
+        else:
+            current_frame = context.scene.frame_start
+
+        # Collect existing paths
+        if self.skip_existing:
+            existing_paths = {
+                Path(bpy.path.abspath(strip.sound.filepath)).resolve()  # type: ignore
+                for strip in sequence_editor.strips
+                if strip.type == "SOUND"
+            }
+        else:
+            existing_paths = {}
+
+        for file in self.files:
+            filepath = Path(self.directory, file.name)
+
+            # Check if already imported
+            if filepath.resolve() in existing_paths:
+                log.info(f"Skipping existing file: {filepath}")
+                continue
+
+            # Check if the file exists
+            if not filepath.is_file():
+                log.error(f"{filepath} does not exist")
+                continue
+
+            # Make relative
+            filepath = filepath.as_posix()
+            if self.relative_path:
+                filepath = bpy.path.relpath(filepath)
+
+            # Create strip
+            sequence = sequence_editor.strips.new_sound(
+                name="audio",
+                filepath=filepath,
+                channel=channel,
+                frame_start=current_frame,
+            )
+            current_frame = sequence.frame_final_end
+
         return {"FINISHED"}
 
 

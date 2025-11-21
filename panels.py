@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 import bpy
 from bpy.types import Panel
 
-from . import catalog, client, draw, session
+from . import catalog, client, draw, ops, session
 
 
 @catalog.bpy_register
@@ -64,6 +64,19 @@ class SCHALOTTE_PT_storyboard(Panel):
 
     def draw(self, context: Context):
         draw.storyboard_ui(self, context)
+
+
+@catalog.bpy_register
+class SCHALOTTE_PT_storyboard_sequencer(Panel):
+    bl_idname = "SCHALOTTE_PT_storyboard_sequencer"
+    bl_category = "Schalotte Tools"
+    bl_label = "Storyboard"
+    bl_space_type = "SEQUENCE_EDITOR"
+    bl_region_type = "UI"
+
+    def draw(self, context: Context):
+        row_sound = self.layout.row()
+        row_sound.operator(ops.SCHALOTTETOOL_OT_AddSoundStrips.bl_idname, icon="SOUND")
 
 
 @catalog.bpy_register
