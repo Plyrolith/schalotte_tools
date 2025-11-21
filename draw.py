@@ -38,7 +38,7 @@ def storyboard_ui(self: Panel, context: Context):
     Storyboard operators.
     """
     layout = self.layout
-    layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname)
+    layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname, icon="PRESET")
 
 
 def preview_ui(self: Panel, context: Context):
@@ -46,7 +46,10 @@ def preview_ui(self: Panel, context: Context):
     Preview operator UI.
     """
     layout = self.layout
-    layout.row().operator(ops.SCHALOTTETOOL_OT_UploadPreview.bl_idname)
+    layout.row().operator(
+        ops.SCHALOTTETOOL_OT_UploadPreview.bl_idname,
+        icon="RENDER_ANIMATION",
+    )
 
 
 def session_ui(self: Panel, context: Context):
