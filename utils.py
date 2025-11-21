@@ -13,6 +13,44 @@ from . import logger
 log = logger.get_logger(__name__)
 
 
+def are_same_paths(*paths: str | Path, resolve: bool = True) -> bool:
+    """
+    Checks whether a number of paths points to the same file/folder. Resolves pathlib
+    Path objects, strings and relative Blender paths.
+
+    Parameters:
+        - *paths (str | Path): Paths to compare
+        - resolve (bool): Resolve all paths before comparison
+
+    Returns:
+        - bool: Whether all paths are the same or not
+    """
+    first_path = None
+    for path in paths:
+        # If path is a string and .blend file is loaded, guarantee absolute path
+        if isinstance(path, str):
+            if bpy.data.filepath:
+                path = Path(bpy.path.abspath(path)).resolve()
+            else:
+                path = Path(path)
+
+        # Resolve and convert to posix
+        elif resolve:
+            path = path.resolve()
+        path = path.as_posix()
+
+        # Store first path for comparison
+        if not first_path:
+            first_path = path
+            continue
+
+        # Compare
+        if path != first_path:
+            return False
+
+    return True
+
+
 def render_scene(
     file_path: Path | str,
     scene: Scene | None = None,

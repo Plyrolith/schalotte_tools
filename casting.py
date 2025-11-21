@@ -57,8 +57,7 @@ class CastingLink(PropertyGroup):
 
         # Check if library is linked
         for library in bpy.data.libraries:
-            library_path = Path(bpy.path.abspath(library.filepath)).resolve()
-            if library_path == Path(self.file_path).resolve():
+            if utils.are_same_paths(self.file_path, library.filepath):
                 log.debug(f"Found linked library {library.name} for {self.asset_name}")
                 self.library_name = library.name
                 return library
