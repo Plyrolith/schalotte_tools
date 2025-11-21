@@ -45,10 +45,10 @@ class SCHALOTTE_PT_session(Panel):
 
 
 @catalog.bpy_register
-class SCHALOTTE_PT_setup(Panel):
-    bl_idname = "SCHALOTTE_PT_setup"
+class SCHALOTTE_PT_storyboard(Panel):
+    bl_idname = "SCHALOTTE_PT_storyboard"
     bl_category = "Schalotte Tools"
-    bl_label = "Setup"
+    bl_label = "Storyboard"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 2
@@ -63,7 +63,7 @@ class SCHALOTTE_PT_setup(Panel):
         )
 
     def draw(self, context: Context):
-        draw.setup_ui(self, context)
+        draw.storyboard_ui(self, context)
 
 
 @catalog.bpy_register

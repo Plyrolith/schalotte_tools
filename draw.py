@@ -33,9 +33,9 @@ def login_ui(self: Panel | AddonPreferences, context: Context):
     layout.row().operator(op)
 
 
-def setup_ui(self: Panel, context: Context):
+def storyboard_ui(self: Panel, context: Context):
     """
-    File setup operators.
+    Storyboard operators.
     """
     layout = self.layout
     layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname)
