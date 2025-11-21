@@ -451,6 +451,10 @@ def setup_storyliner(scene: Scene | None = None):
     stamp.stampRenderResOver_percentage = 86.0
     stamp.projectNameUsed = True
 
+    # Project
+    if s.project:
+        stamp.projectName = s.project.get("name", "").upper()
+
     # Logo
     project_root = find_project_root()
     stamp.logoUsed = False
@@ -478,8 +482,6 @@ def setup_storyliner(scene: Scene | None = None):
         # Fall back to project title
         log.warning(f"Project logo does not exist: {logo_path}")
         stamp.projectNameUsed = True
-        if s.project:
-            stamp.projectName = s.project.get("name", "").upper()
 
     # Metadata
     stamp.sceneUsed = False
