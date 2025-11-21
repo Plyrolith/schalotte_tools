@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Literal
     from bpy.types import Context
 
 from pathlib import Path
@@ -9,7 +10,7 @@ import bpy
 import re
 from bpy.props import EnumProperty, StringProperty
 
-from . import catalog, client, logger
+from . import catalog, client, logger, schalotte, utils
 
 
 log = logger.get_logger(__name__)
@@ -152,18 +153,61 @@ class Session(catalog.WindowManagerModule):
 
         return [("NONE", "No Tasks Available", "No tasks found for selected")]
 
-    def update_project_id(self, context):
+    def update_project_id(self, context: Context):
+        """
+        Reset episode ID.
+        """
         self.episode_id = "NONE"
 
-    def update_episode_id(self, context):
+    def update_episode_id(self, context: Context):
+        """
+        Reset sequence ID.
+        """
         self.sequence_id = "NONE"
 
-    def update_sequence_id(self, context):
+    def update_sequence_id(self, context: Context):
+        """
+        Reset shot and task IDs.
+        """
         self.shot_id = "NONE"
         self.task_id = "NONE"
 
-    def update_shot_id(self, context):
+    def update_shot_id(self, context: Context):
+        """
+        Reset task ID.
+        """
         self.task_id = "NONE"
+
+    def update_task_id(self, context: Context):
+        """
+        Set existing or expected file path.
+        """
+        self.current_file_path = bpy.data.filepath
+        self.work_file_path = ""
+        if not self.task_id or self.task_id == "NONE":
+            self.work_file_status = "NONE"
+            return
+
+        task_path = schalotte.generate_shot_blend_path(self.task_id)
+        if not task_path:
+            log.debug(f"Task path cannot be generated.")
+            self.work_file_status = "INVALID"
+            return
+        self.work_file_path = task_path.as_posix()
+
+        if self.current_file_path and utils.are_same_paths(
+            self.current_file_path, task_path
+        ):
+            log.debug(f"Current file matches task path.")
+            self.work_file_status = "ACTIVE"
+
+        elif task_path.exists():
+            log.debug(f"Work file exists but is not loaded.")
+            self.work_file_status = "EXISTS"
+
+        else:
+            log.debug(f"Work file has not been created yet.")
+            self.work_file_status = "MISSING"
 
     project_id: EnumProperty(
         name="Project",
@@ -197,6 +241,22 @@ class Session(catalog.WindowManagerModule):
         name="Task",
         items=enum_task_ids,
         description="Selected task",
+        update=update_task_id,
+    )
+
+    current_file_path: StringProperty(name="Current File Path", subtype="FILE_PATH")
+
+    work_file_path: StringProperty(name="Work File Path", subtype="FILE_PATH")
+
+    work_file_status: EnumProperty(
+        items=(
+            ("NONE", "No Task Selected", "No Task Selected"),
+            ("INVALID", "Invalid", "Invalid"),
+            ("MISSING", "Missing", "Missing"),
+            ("EXISTS", "Existing", "Existing"),
+            ("ACTIVE", "Active", "Active"),
+        ),
+        name="Work File Status",
     )
 
     @property
@@ -218,6 +278,20 @@ class Session(catalog.WindowManagerModule):
     @property
     def task(self) -> dict | None:
         return client.STORE.get(self.task_id)
+
+    def get_work_file_status(
+        self,
+    ) -> Literal["NONE", "INVALID", "MISSING", "EXISTS", "ACTIVE"]:
+        """
+        Get the work file status of the session and update if the open file has changed.
+
+        Returns:
+            Literal["NONE", "INVALID", "MISSING", "EXISTS", "ACTIVE"]:
+            The updated work file status.
+        """
+        if bpy.data.filepath != self.current_file_path:
+            self.update_task_id(bpy.context)
+        return self.work_file_status
 
     def guess_from_filepath(self, file_path: str | Path | None = None):
         """

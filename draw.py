@@ -56,20 +56,70 @@ def session_ui(self: Panel, context: Context):
     s = session.Session.this()
     layout = self.layout
 
+    file_status = s.get_work_file_status()
+    row_guess = layout.row()
     if bpy.data.filepath:
-        layout.row().operator(ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_idname)
+        if file_status == "ACTIVE":
+            row_guess.enabled = False
+            row_guess.emboss = "NONE"
+            op_guess_text = "Current File Matches Selection"
+            op_guess_icon = "CHECKMARK"
+        else:
+            op_guess_text = ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_label
+            op_guess_icon = "FILE_ALIAS"
     else:
-        row = layout.row()
-        row.alignment = "CENTER"
-        row.label(text="File Has Not Been Saved", icon="ERROR")
+        row_guess.enabled = False
+        row_guess.emboss = "NONE"
+        op_guess_text = "Open File to Guess Task"
+        op_guess_icon = "INFO"
 
-    col = layout.column()
-    col.use_property_split = True
-    col.row().prop(s, "project_id")
-    col.row().prop(s, "episode_id")
-    col.row().prop(s, "sequence_id")
-    col.row().prop(s, "shot_id")
-    col.row().prop(s, "task_id")
+    row_guess.operator(
+        ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_idname,
+        text=op_guess_text,
+        icon=op_guess_icon,
+    )
+
+    col_select = layout.column()
+    col_select.use_property_split = True
+    col_select.row().prop(s, "project_id")
+    col_select.row().prop(s, "episode_id")
+    col_select.row().prop(s, "sequence_id")
+    col_select.row().prop(s, "shot_id")
+    col_select.row().prop(s, "task_id")
+
+    row_file = layout.row()
+    op_file_name = ops.SCHALOTTETOOL_OT_CreateWorkFile.bl_idname
+
+    match file_status:
+        case "ACTIVE":
+            row_file.enabled = False
+            row_file.emboss = "NONE"
+            op_file_text = "File is Active"
+            op_file_icon = "CHECKMARK"
+        case "EXISTS":
+            row_file.operator_context = "EXEC_DEFAULT"
+            op_file_name = "wm.open_mainfile"
+            op_file_text = "Open Work File"
+            op_file_icon = "FILE_BLEND"
+        case "MISSING":
+            op_file_text = ops.SCHALOTTETOOL_OT_CreateWorkFile.bl_label
+            op_file_icon = "FILE_NEW"
+        case "NONE":
+            row_file.enabled = False
+            row_file.emboss = "NONE"
+            op_file_text = "Select a Task"
+            op_file_icon = "INFO"
+        case _:
+            row_file.enabled = False
+            row_file.emboss = "NONE"
+            op_file_text = "Cannot Generate File Path"
+            op_file_icon = "ERROR"
+
+    op_open = row_file.operator(op_file_name, text=op_file_text, icon=op_file_icon)
+    if file_status == "EXISTS":
+        op_open.filepath = s.work_file_path
+        op_open.load_ui = False
+        op_open.use_scripts = False
 
 
 def casting_ui(self: Panel, context: Context):

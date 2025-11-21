@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 from pathlib import Path
 import bpy
-from . import client, logger, session, utils
+from . import client, logger, preferences, session, utils
 
 log = logger.get_logger(__name__)
 
@@ -17,6 +17,15 @@ ASSET_TYPE_MAP = {
     "Environment": "02_01_02_environments",
     "Set Prop": "02_01_03_environmental_props",
     "Hero Prop": "02_01_04_hero_props",
+}
+
+SHOT_TASK_NAME_MAP = {
+    "Storyboard": "02_02_storyboard",
+    "Layout": "02_03_layout_scene_prep",
+    "Anim Blocking": "02_04_animation",
+    "Anim Splining": "02_04_animation",
+    "Lighting": "02_05_lighting",
+    "FX": "02_06_VFX",
 }
 
 COLLECTIONS_MAP = {
@@ -33,26 +42,43 @@ STB_SETUP_FILE_REL = Path(
 )
 
 
-def find_project_root(root_name: str = "02_production") -> Path | None:
+def find_project_root(
+    root_name: str = "02_production",
+    use_prefs: bool = True,
+) -> Path | None:
     """
     Find the project root path from the current file path.
+    Optionally check preferences first and store if it doesn't exist yet.
 
     Args:
         root_name (str): Name of the root folder in the project structure
+        use_prefs (bool): Check and store preferences
 
     Returns:
         Path | None
     """
-    root_path = Path(bpy.data.filepath)
-    if not root_path:
-        log.error("Could not determine current file path")
+    prefs = preferences.Preferences.this()
+    if use_prefs and prefs.project_root:
+        base_path = Path(prefs.project_root)
+    else:
+        base_path = Path(bpy.data.filepath)
+    if not base_path:
+        log.error("Could not determine a base path to find the project root")
         return
-    for _ in range(5):
-        root_path = root_path.parent
+    root_path = base_path
+    for _ in range(8):
         if root_path.name == root_name:
             break
+        root_path = root_path.parent
     else:
+        log.error(f"Root name not found in {base_path}.")
         return
+
+    if use_prefs and not prefs.project_root:
+        log.info(f"Updating project root to: {root_path}")
+        prefs.project_root = root_path.as_posix()
+        bpy.ops.wm.save_userpref()
+
     return root_path
 
 
@@ -289,6 +315,82 @@ def ensure_storyboard_compositing(scene: Scene | None = None):
     node_tree.links.new(comp.inputs["Image"], hsv.outputs["Image"])
     node_tree.links.new(viewer.inputs["Image"], hsv.outputs["Image"])
     node_tree.links.new(hsv.inputs["Image"], rlay.outputs["Image"])
+
+
+def generate_shot_blend_path(task_id: str) -> Path | None:
+    """
+    Generate the expected file path for given task ID.
+
+    Args:
+        task_id (str): Task ID
+
+    Returns:
+        Path | None: Path object for the expected file path, if successful
+    """
+    # Project root
+    project_root = find_project_root()
+    if not project_root:
+        log.error(f"Could not find project root for {task_id}.")
+        return
+
+    # Task dict
+    task = client.STORE.get(task_id)
+    if not task:
+        log.error(f"Task {task_id} has not been fetched yet.")
+        return
+
+    # Task type name
+    task_name = task.get("task_type_name")
+    if not task_name:
+        log.error(f"Task {task_id} has no task type name.")
+        return
+
+    # Task dir name
+    task_dir_name = SHOT_TASK_NAME_MAP.get(task_name)
+    if not task_dir_name:
+        log.error(f"Can not find directory for {task_name} type tasks.")
+        return
+
+    # Shot
+    shot_id = task.get("entity_id", "")
+    shot = client.STORE.get(shot_id)
+    if not shot:
+        log.error(f"Shot {shot_id} has not been fetched yet.")
+        return
+
+    # Sequence
+    sequence_id = shot.get("parent_id", "")
+    sequence = client.STORE.get(sequence_id)
+    if not sequence:
+        log.error(f"Sequence {sequence_id} has not been fetched yet.")
+        return
+
+    # Sequence name
+    sq_name = sequence.get("name")
+    if not sq_name:
+        log.error(f"Sequence {sequence_id} has no name.")
+        return
+
+    # Episode
+    eqisode_id = sequence.get("parent_id", "")
+    episode = client.STORE.get(eqisode_id)
+    if not episode:
+        log.error(f"Episode {eqisode_id} has not been fetched yet.")
+        return
+
+    # Episode name
+    ep_name = episode.get("name")
+    if not ep_name:
+        log.error(f"Episode {eqisode_id} has no name.")
+        return
+
+    # File name
+    ep_short = f"e{ep_name[-2:]}"
+    sq_short = f"sq{sq_name[-3:-1]}"
+    file_name = f"SCH_s01_{ep_short}_{sq_short}.blend"
+
+    # Build path
+    return project_root / task_dir_name / "s01" / ep_name / sq_name / file_name
 
 
 def setup_storyboard(scene: Scene | None = None):

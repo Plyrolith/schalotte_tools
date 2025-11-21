@@ -107,6 +107,85 @@ class SCHALOTTETOOLS_OT_LogOut(Operator):
 
 
 @catalog.bpy_register
+class SCHALOTTETOOL_OT_CreateWorkFile(Operator):
+    """Create a new work file"""
+
+    bl_idname = "schalotte.create_work_file"
+    bl_label = "Create Work File"
+    bl_options = {"REGISTER"}
+
+    mode: EnumProperty(
+        items=(
+            ("NEW", "Empty File", "Create a new empty file"),
+            ("CURRENT", "Use Current", "Save the open file as a new work file"),
+        ),
+        name="Mode",
+    )
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Only if the currently selected task has a work file path.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Session task has a work file path
+        """
+        return bool(session.Session.this().work_file_path)
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Set mode based on work file and draw UI.
+
+        Args:
+            context (Context)
+            event (Event)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if bpy.data.filepath:
+            self.mode = "CURRENT"
+            return context.window_manager.invoke_props_dialog(self)
+        self.mode = "NEW"
+        return self.execute(context)
+
+    def draw(self, context: Context):
+        """
+        Draw the operator UI.
+
+        Args:
+            context (Context)
+        """
+        self.layout.row().prop(self, "mode", expand=True)
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Create an empty file or save the current one to the work file path.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        file_path = session.Session.this().work_file_path
+
+        # Empty file
+        if self.mode == "NEW":
+            bpy.ops.wm.read_homefile(load_ui=False, use_empty=True)
+
+        # Create parent directories
+        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+
+        # Save work file
+        bpy.ops.wm.save_as_mainfile(filepath=file_path)
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
 class SCHALOTTETOOL_OT_UploadPreview(Operator):
     """Render a preview and upload it to selected task"""
 

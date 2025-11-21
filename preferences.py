@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from bpy.types import Context
 
 import bpy
-from bpy.props import EnumProperty
+from bpy.props import EnumProperty, StringProperty
 from bpy.types import AddonPreferences
 
 from . import draw, logger
@@ -46,10 +46,13 @@ class Preferences(AddonPreferences):
         update=set_log_level,
     )
 
+    project_root: StringProperty(name="Project Root", subtype="DIR_PATH")
+
     def draw(self, context: Context):
         col = self.layout.column()
         col.use_property_split = True
         col.row().prop(self, "log_level")
+        col.row().prop(self, "project_root")
         draw.login_ui(self, context)
 
     @classmethod
