@@ -21,15 +21,15 @@ def login_ui(self: Panel | AddonPreferences, context: Context):
         op = ops.SCHALOTTETOOLS_OT_LogIn.bl_idname
         pw = "password"
 
-    col = layout.column()
-    col.use_property_split = True
-    col.enabled = not c.is_logged_in
-    col.row().prop(c, "host")
-    col.row().prop(c, "username")
-    col.row().prop(c, pw)
-    col = layout.row().column()
-    col.use_property_split = True
-    col.prop(c, "use_cache")
+    col_login = layout.column()
+    col_login.use_property_split = True
+    col_login.enabled = not c.is_logged_in
+    col_login.row().prop(c, "host")
+    col_login.row().prop(c, "username")
+    col_login.row().prop(c, pw)
+    col_login = layout.row().column()
+    col_login.use_property_split = True
+    col_login.prop(c, "use_cache")
     layout.row().operator(op)
 
 
@@ -143,13 +143,13 @@ def casting_ui(self: Panel, context: Context):
     is_storyboard = s.task and s.task.get("task_type_name", "").lower() == "storyboard"
     link_icon = "APPEND_BLEND" if is_storyboard else "LINKED"
 
-    col = layout.column()
+    col_casting = layout.column()
     col_atype_map = {}
     for i, link in enumerate(c.links):
         # Asset type box
         col_atype = col_atype_map.get(link.asset_type_name)
         if not col_atype:
-            col_atype = col.box().column(align=True)
+            col_atype = col_casting.box().column(align=True)
             col_atype_map[link.asset_type_name] = col_atype
             row_atype = col_atype.row()
             row_atype.alignment = "CENTER"
