@@ -2,7 +2,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import Collection, Scene
+    from typing import Iterable
+    from bpy.types import Bone, Collection, Context, Object, Scene
 
 import bpy
 from pathlib import Path
@@ -201,3 +202,89 @@ def get_sequencer_max_channel(scene: Scene | None = None) -> int:
             channel_offset = strip.channel
 
     return channel_offset
+
+
+def select_pose_bones(
+    obj: Object,
+    bone_names: Iterable[str],
+    clear: bool = False,
+    context: Context | None = None,
+) -> Bone:
+    """
+    Select all bones with the given names. Make the first one active.
+
+    Parameters:
+        obj (Object): The armature object
+        bone_names (Iterable[str]): Bone names to select
+        clear (bool): Whether to clear selection before adding new ones
+        context (Context | None): The current Blender context
+
+    Returns:
+        list[Bone]: List of selected bones.
+    """
+    if not context:
+        context = bpy.context
+
+    # Switch to object mode
+    if context.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+
+    # Deselect all objects
+    if clear:
+        bpy.ops.object.select_all(action="DESELECT")
+
+    # Select object and set active
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
+
+    # Switch to pose mode
+    bpy.ops.object.mode_set(mode="POSE")
+
+    # Deselect all pose bones
+    if clear:
+        bpy.ops.pose.select_all(action="DESELECT")
+
+    # Select pose bones
+    bones = []
+    for bone_name in bone_names:
+        bone = obj.data.bones.get(bone_name)  # type: ignore
+        if not bone:
+            log.warning(f"{bone_name} not found in {obj.name}.")
+            continue
+
+        bone.select = True
+        bones.append(bone)
+
+    # Activate first bone
+    if bones:
+        obj.data.bones.active = bones[0]  # type: ignore
+
+    return bones  # type: ignore
+
+
+def iterable_to_string(iterable: Iterable, delimiter: str = "␟") -> str:
+    """
+    Converts an iterable to string using a delimiter.
+
+    Args:
+        iterable (Iterable): The iterable to convert
+        delimiter (str): The delimiter used for splitting the string
+
+    Returns:
+        str: The converted string
+    """
+    return delimiter.join(map(str, iterable))
+
+
+def string_to_list(string: str, delimiter: str = "␟") -> list[str]:
+    """
+    Converts a delimited string into a list.
+
+    Args:
+        string (str): The string to convert
+        delimiter (str): The delimiter used for splitting the string
+
+    Returns:
+        list[str]: The converted list
+    """
+    return string.split(delimiter)

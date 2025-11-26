@@ -67,6 +67,28 @@ class SCHALOTTE_PT_storyboard(Panel):
 
 
 @catalog.bpy_register
+class SCHALOTTE_PT_storyboard_camera(Panel):
+    bl_idname = "SCHALOTTE_PT_storyboard_camera"
+    bl_category = "Schalotte Tools"
+    bl_label = "Camera"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_parent_id = "SCHALOTTE_PT_storyboard"
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        s = session.Session.this()
+        return bool(
+            bpy.data.filepath
+            and s.task
+            and s.task.get("task_type_name", "").lower() == "storyboard"
+        )
+
+    def draw(self, context: Context):
+        draw.camera_ui(self, context)
+
+
+@catalog.bpy_register
 class SCHALOTTE_PT_storyboard_sequencer(Panel):
     bl_idname = "SCHALOTTE_PT_storyboard_sequencer"
     bl_category = "Schalotte Tools"

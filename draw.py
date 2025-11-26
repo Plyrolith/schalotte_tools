@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import AddonPreferences, Context, Panel
+    from bpy.types import AddonPreferences, Context, OperatorProperties, Panel, UILayout
 
 from pathlib import Path
 import bpy
@@ -206,3 +206,131 @@ def casting_ui(self: Panel, context: Context):
         )
         op_all.index = -1
         op_all.mode = "APPEND" if is_storyboard else "AUTO"
+
+
+def camera_ui(self: Panel, context: Context):
+    """
+    Dolly camera rig UI.
+    """
+
+    def draw_select(
+        layout: UILayout,
+        bone_names: str,
+        text: str = "",
+        icon: str = "NONE",
+        clear: bool = False,
+        depress: bool = False,
+    ) -> OperatorProperties:
+        """
+        Draws a pose bones select operator.
+        """
+        op_sel = layout.operator(
+            operator=ops.SCHALOTTETOOL_OT_SelectPoseBones.bl_idname,
+            text=text,
+            icon=icon,  # type: ignore
+            depress=depress,
+        )
+        op_sel.object_name = object_name
+        op_sel.bone_names = bone_names
+        op_sel.clear = clear
+        return op_sel
+
+    # Find camera and rig
+    enabled = False
+    rig = None
+    object_name = ""
+    cam = context.scene.camera
+    if cam and cam.parent and cam.parent.type == "ARMATURE":
+        rig = cam.parent
+        object_name = rig.name
+        enabled = True
+
+    # Check selection
+    cam_bone = None
+    root_selected = False
+    cam_selected = False
+    aim_selected = False
+    off_selected = False
+    if rig:
+        cam_bone = rig.pose.bones.get("Camera")
+        selected_pose_bones = context.selected_pose_bones
+        if selected_pose_bones:
+            if cam_bone and cam_bone in selected_pose_bones:
+                cam_selected = True
+            root_bone = rig.pose.bones.get("Root")
+            if root_bone and root_bone in selected_pose_bones:
+                root_selected = True
+            aim_bone = rig.pose.bones.get("Aim")
+            if aim_bone and aim_bone in selected_pose_bones:
+                aim_selected = True
+            offset_bone = rig.pose.bones.get("Camera_Offset")
+            if offset_bone and offset_bone in selected_pose_bones:
+                off_selected = True
+
+    # Camera UI
+    layout = self.layout
+    row_lens = layout.row()
+    if cam_bone:
+        row_lens.use_property_split = True
+        row_lens.prop(cam_bone, '["lens"]', text="Focal Length")
+    else:
+        row_lens.label(text="No Active Camera", icon="OBJECT_HIDDEN")
+
+    # Offset
+    row_offset = layout.row(align=True)
+    row_offset.enabled = enabled
+    draw_select(
+        row_offset,
+        "Camera_Offset",
+        "Offset",
+        "MESH_CIRCLE",
+        True,
+        off_selected,
+    )
+    draw_select(row_offset, "Camera_Offset", "", "SELECT_EXTEND", False, off_selected)
+
+    col_camaim = layout.column(align=True)
+
+    # Camera
+    row_single = col_camaim.row(align=True)
+    row_single.enabled = enabled
+
+    # Aim
+    draw_select(row_single, "Aim", "Aim", "EMPTY_AXIS", True, aim_selected)
+    draw_select(row_single, "Aim", "", "SELECT_EXTEND", False, aim_selected)
+
+    draw_select(
+        row_single,
+        "Camera",
+        "Camera",
+        "NONE",
+        True,
+        cam_selected,
+    )
+    draw_select(row_single, "Camera", "", "SELECT_EXTEND", False, cam_selected)
+
+    # Camera & Aim
+    row_both = col_camaim.row(align=True)
+    row_both.enabled = enabled
+    draw_select(
+        row_both,
+        "Camera␟Aim",
+        "Camera & Aim",
+        "CAMERA_DATA",
+        True,
+        cam_selected and aim_selected,
+    )
+    draw_select(
+        row_both,
+        "Camera␟Aim",
+        "",
+        "SELECT_EXTEND",
+        False,
+        cam_selected and aim_selected,
+    )
+
+    # Root
+    row_root = layout.row(align=True)
+    row_root.enabled = enabled
+    draw_select(row_root, "Root", "Root", "CURSOR", True, root_selected)
+    draw_select(row_root, "Root", "", "SELECT_EXTEND", False, root_selected)

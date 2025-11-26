@@ -635,3 +635,38 @@ class SCHALOTTETOOL_OT_LinkAsset(Operator):
 
         bpy.ops.file.make_paths_relative()
         return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
+    """Select pose bones of an object."""
+
+    bl_idname = "schalotte.select_pose_bones"
+    bl_label = "Select Pose Bones"
+    bl_options = {"REGISTER", "UNDO"}
+
+    object_name: StringProperty(name="Object Name")
+    bone_names: StringProperty(name="Pose Bones")
+    clear: BoolProperty(name="Clear Selection")
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Fetch the casting for the selected shot.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        obj = bpy.data.objects.get(self.object_name)
+        if not obj:
+            msg = f"{self.object_name} not found"
+            log.error(msg)
+            self.report({"ERROR"}, msg)
+            return {"CANCELLED"}
+
+        bone_names = utils.string_to_list(self.bone_names)
+
+        utils.select_pose_bones(obj, bone_names, self.clear, context)
+        return {"FINISHED"}
