@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bpy.types import AddonPreferences, Context, Panel
 
+from pathlib import Path
 import bpy
-from . import casting, client, ops, session
+from . import casting, client, ops, preferences, session
 
 
 def login_ui(self: Panel | AddonPreferences, context: Context):
@@ -60,28 +61,23 @@ def session_ui(self: Panel, context: Context):
     s = session.Session.this()
     layout = self.layout
 
-    file_status = s.get_work_file_status()
+    if not preferences.Preferences.this().project_root:
+        file_status = "NO_ROOT"
+    else:
+        file_status = s.get_work_file_status()
     row_guess = layout.row()
     if bpy.data.filepath:
         if file_status == "ACTIVE":
-            row_guess.enabled = False
-            row_guess.emboss = "NONE"
-            op_guess_text = "Current File Matches Selection"
-            op_guess_icon = "CHECKMARK"
+            row_guess.alignment = "CENTER"
+            row_guess.label(text="File is Active", icon="CHECKMARK")
         else:
-            op_guess_text = ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_label
-            op_guess_icon = "FILE_ALIAS"
+            row_guess.operator(
+                operator=ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_idname,
+                icon="FILE_ALIAS",
+            )
     else:
-        row_guess.enabled = False
-        row_guess.emboss = "NONE"
-        op_guess_text = "Open File to Guess Task"
-        op_guess_icon = "INFO"
-
-    row_guess.operator(
-        ops.SCHALOTTETOOL_OT_GuessSessionFromFilepath.bl_idname,
-        text=op_guess_text,
-        icon=op_guess_icon,
-    )
+        row_guess.alignment = "CENTER"
+        row_guess.label(text="Open a File to Guess Task", icon="INFO")
 
     col_select = layout.column()
     col_select.use_property_split = True
@@ -91,39 +87,58 @@ def session_ui(self: Panel, context: Context):
     col_select.row().prop(s, "shot_id")
     col_select.row().prop(s, "task_id")
 
-    row_file = layout.row()
-    op_file_name = ops.SCHALOTTETOOL_OT_CreateWorkFile.bl_idname
+    row_file = layout.row(align=True)
 
     match file_status:
         case "ACTIVE":
-            row_file.enabled = False
-            row_file.emboss = "NONE"
-            op_file_text = "File is Active"
-            op_file_icon = "CHECKMARK"
+            op_open = row_file.operator(
+                operator="wm.path_open",
+                text="Open Location",
+                icon="FILEBROWSER",
+            )
+            op_open.filepath = Path(s.work_file_path).parent.as_posix()
+
         case "EXISTS":
             row_file.operator_context = "EXEC_DEFAULT"
-            op_file_name = "wm.open_mainfile"
-            op_file_text = "Open Work File"
-            op_file_icon = "FILE_BLEND"
-        case "MISSING":
-            op_file_text = ops.SCHALOTTETOOL_OT_CreateWorkFile.bl_label
-            op_file_icon = "FILE_NEW"
-        case "NONE":
-            row_file.enabled = False
-            row_file.emboss = "NONE"
-            op_file_text = "Select a Task"
-            op_file_icon = "INFO"
-        case _:
-            row_file.enabled = False
-            row_file.emboss = "NONE"
-            op_file_text = "Cannot Generate File Path"
-            op_file_icon = "ERROR"
+            op_file = row_file.operator(
+                operator="wm.open_mainfile",
+                text="Open Work File",
+                icon="FILE_BLEND",
+            )
+            op_file.filepath = s.work_file_path
+            op_file.load_ui = False
+            op_file.use_scripts = False
+            op_open = row_file.operator(
+                operator="wm.path_open",
+                text="",
+                icon="FILEBROWSER",
+            )
+            op_open.filepath = Path(s.work_file_path).parent.as_posix()
 
-    op_open = row_file.operator(op_file_name, text=op_file_text, icon=op_file_icon)
-    if file_status == "EXISTS":
-        op_open.filepath = s.work_file_path
-        op_open.load_ui = False
-        op_open.use_scripts = False
+        case "MISSING":
+            op_open = row_file.operator(
+                operator=ops.SCHALOTTETOOL_OT_CreateWorkFile.bl_idname,
+                text=ops.SCHALOTTETOOL_OT_CreateWorkFile.bl_label,
+                icon="FILE_NEW",
+            )
+        case "NONE":
+            row_file.alignment = "CENTER"
+            row_file.label(
+                text="Select a Task",
+                icon="INFO",
+            )
+        case "NO_ROOT":
+            row_file.alignment = "CENTER"
+            row_file.label(
+                text="Guess From Path to Set Project Root",
+                icon="ERROR",
+            )
+        case _:
+            row_file.alignment = "CENTER"
+            row_file.label(
+                text="Cannot Generate File Path",
+                icon="ERROR",
+            )
 
 
 def casting_ui(self: Panel, context: Context):
