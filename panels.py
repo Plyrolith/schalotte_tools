@@ -73,7 +73,7 @@ class SCHALOTTE_PT_storyboard_camera(Panel):
     bl_label = "Camera"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_parent_id = "SCHALOTTE_PT_storyboard"
+    bl_order = 3
 
     @classmethod
     def poll(cls, context) -> bool:
@@ -108,7 +108,7 @@ class SCHALOTTE_PT_preview(Panel):
     bl_label = "Preview"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 3
+    bl_order = 4
 
     @classmethod
     def poll(cls, context: Context):
@@ -130,7 +130,7 @@ class SCHALOTTE_PT_casting(Panel):
     bl_label = "Casting"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 4
+    bl_order = 5
 
     @classmethod
     def poll(cls, context: Context):

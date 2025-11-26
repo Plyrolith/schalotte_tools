@@ -6,7 +6,7 @@ if TYPE_CHECKING:
 
 from pathlib import Path
 import bpy
-from . import casting, client, ops, preferences, session
+from . import camera, casting, client, ops, preferences, session
 
 
 def login_ui(self: Panel | AddonPreferences, context: Context):
@@ -269,15 +269,20 @@ def camera_ui(self: Panel, context: Context):
 
     # Camera UI
     layout = self.layout
+    # Focal length
     row_lens = layout.row()
+    row_lens.use_property_split = True
     if cam_bone:
-        row_lens.use_property_split = True
         row_lens.prop(cam_bone, '["lens"]', text="Focal Length")
     else:
-        row_lens.label(text="No Active Camera", icon="OBJECT_HIDDEN")
+        row_lens.alignment = "CENTER"
+        row_lens.label(text="No Active Camera Rig", icon="OBJECT_HIDDEN")
+
+    layout.row()
 
     # Offset
-    row_offset = layout.row(align=True)
+    box_select = layout.box()
+    row_offset = box_select.row(align=True)
     row_offset.enabled = enabled
     draw_select(
         row_offset,
@@ -289,7 +294,7 @@ def camera_ui(self: Panel, context: Context):
     )
     draw_select(row_offset, "Camera_Offset", "", "SELECT_EXTEND", False, off_selected)
 
-    col_camaim = layout.column(align=True)
+    col_camaim = box_select.column(align=True)
 
     # Camera
     row_single = col_camaim.row(align=True)
@@ -330,7 +335,21 @@ def camera_ui(self: Panel, context: Context):
     )
 
     # Root
-    row_root = layout.row(align=True)
+    row_root = box_select.row(align=True)
     row_root.enabled = enabled
     draw_select(row_root, "Root", "Root", "CURSOR", True, root_selected)
     draw_select(row_root, "Root", "", "SELECT_EXTEND", False, root_selected)
+
+    layout.row()
+
+    # Passepartout
+    c = camera.Camera.this()
+    col_cam = layout.column()
+    col_cam.use_property_split = True
+    col_cam.row().prop(c, "passepartout_alpha", expand=True)
+
+    # Guides
+    row_guides = col_cam.row(heading="Guides")
+    row_guides.prop(c, "show_composition_thirds", toggle=True)
+    row_guides.prop(c, "show_composition_golden", toggle=True)
+    row_guides.prop(c, "show_composition_center", toggle=True)
