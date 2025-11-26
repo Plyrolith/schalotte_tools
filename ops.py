@@ -651,7 +651,7 @@ class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
-        Fetch the casting for the selected shot.
+        Select pose bones of an armature object.
 
         Args:
             context (Context)
