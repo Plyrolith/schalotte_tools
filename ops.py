@@ -668,5 +668,12 @@ class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
 
         bone_names = utils.string_to_list(self.bone_names)
 
-        utils.select_pose_bones(obj, bone_names, self.clear, context)
+        try:
+            utils.select_pose_bones(obj, bone_names, self.clear, context)
+        except RuntimeError:
+            msg = f"{obj.name} is not selectable."
+            log.error(msg)
+            self.report({"ERROR"}, msg)
+            return {"CANCELLED"}
+
         return {"FINISHED"}
