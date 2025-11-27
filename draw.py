@@ -344,12 +344,16 @@ def camera_ui(self: Panel, context: Context):
 
     # Passepartout
     c = camera.Camera.this()
+    view_3d = bpy.context.preferences.themes[0].view_3d
     col_cam = layout.column()
-    col_cam.use_property_split = True
-    col_cam.row().prop(c, "passepartout_alpha", expand=True)
+    # col_cam.use_property_split = True
+    row_passe = col_cam.row(align=True)
+    row_passe.prop(c, "passepartout_alpha", expand=True)
+    row_passe.prop(view_3d, "camera_passepartout", text="")
 
     # Guides
-    row_guides = col_cam.row(heading="Guides")
-    row_guides.prop(c, "show_composition_thirds", toggle=True)
-    row_guides.prop(c, "show_composition_golden", toggle=True)
-    row_guides.prop(c, "show_composition_center", toggle=True)
+    row_guides = col_cam.row(align=True)  # heading="Guides")
+    row_guides.prop(c, "show_composition_thirds", icon="MESH_GRID", toggle=True)
+    row_guides.prop(c, "show_composition_golden", icon="MOD_MULTIRES", toggle=True)
+    row_guides.prop(c, "show_composition_center", icon="SPLIT_VERTICAL", toggle=True)
+    row_guides.prop(view_3d, "view_overlay", text="")
