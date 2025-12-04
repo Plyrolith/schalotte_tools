@@ -273,6 +273,12 @@ def camera_ui(self: Panel, context: Context):
 
     # Camera UI
     layout = self.layout
+    c = camera.Camera.this()
+
+    # Hide inactive
+    icon_hide = "RESTRICT_VIEW_ON" if c.hide_inactive_cameras else "RESTRICT_VIEW_OFF"
+    layout.row().prop(c, "hide_inactive_cameras", icon=icon_hide, toggle=True)
+
     # Focal length
     row_lens = layout.row()
     row_lens.use_property_split = True
@@ -347,7 +353,6 @@ def camera_ui(self: Panel, context: Context):
     layout.row()
 
     # Passepartout
-    c = camera.Camera.this()
     view_3d = bpy.context.preferences.themes[0].view_3d
     col_cam = layout.column()
     # col_cam.use_property_split = True
