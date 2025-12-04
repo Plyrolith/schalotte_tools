@@ -152,8 +152,15 @@ def ensure_camera_collection(scene: Scene | None = None) -> Collection | None:
     Returns:
         Collection | None
     """
+    # Try to find the default collection
     col_name = "cam.001"
     cam_col = bpy.data.collections.get(col_name)
+
+    # Try to find the collection for the first shot:
+    if not cam_col:
+        cam_col = bpy.data.collections.get("cam_sh0010")
+
+    # Append the camera collection
     if not cam_col:
         # Find the setup file
         root_path = find_project_root()
@@ -165,7 +172,7 @@ def ensure_camera_collection(scene: Scene | None = None) -> Collection | None:
             log.error(f"File not found: {setup_file}")
             return
 
-        # Append the camera collection
+        # Append
         log.debug(f"Appending: {setup_file}")
         cam_col = utils.append_collection(setup_file, col_name)
         if not cam_col:
