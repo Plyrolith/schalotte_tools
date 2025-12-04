@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import Collection, CompositorNodeTree, Material, Scene, World
+    from bpy.types import Collection, CompositorNodeTree, Material, Object, Scene, World
 
 
 from pathlib import Path
@@ -624,3 +624,56 @@ def setup_storyliner(scene: Scene | None = None):
 
     # Initialize
     bpy.ops.wksl_stamp_info.initialize()  # type: ignore
+
+
+def fix_cam_rig_names(scene: Scene | None = None):
+    """
+    Set all camera rig names to their associated shots. Includes the collection,
+    rig object, rig data and action (if available).
+    """
+    if not scene:
+        scene = bpy.context.scene
+
+    cameras: set[Object] = set()
+
+    # Collect from Storyliner and rename
+    if hasattr(scene, "WkStoryLiner_props"):
+        for take in scene.WkStoryLiner_props.takes:  # type: ignore
+            for shot in take.shots:
+                if shot.camera:
+                    shot.camera.name = f"cam_{shot.name}"
+                    cameras.add(shot.camera)
+
+    # ... or use timeline markers and rename
+    else:
+        i = 0
+        for marker in scene.timeline_markers:
+            if marker.camera:
+                i += 1
+                marker.camera.name = f"sh{i:03d}0"
+                cameras.add(marker.camera)
+
+    # Rename all other relevant data
+    for cam in cameras:
+        # Data and actions
+        if cam.animation_data and cam.animation_data.action:
+            cam.animation_data.action.name = f"{cam.name}_Action"
+        cam.data.name = f"{cam.name}_Data"
+        if cam.data.animation_data and cam.data.animation_data.action:
+            cam.data.animation_data.action.name = f"{cam.data.name}_Action"
+
+        # Rig, data and actions
+        rig = cam.parent
+        if rig:
+            rig.name = f"{cam.name}_Rig"
+            if rig.animation_data and rig.animation_data.action:
+                rig.animation_data.action.name = f"{rig.name}_Action"
+            if rig.data:
+                rig.data.name = f"{rig.name}_Data"
+                if rig.data.animation_data and rig.data.animation_data.action:
+                    rig.data.animation_data.action.name = f"{rig.data.name}_Action"
+
+        # Collection
+        for col in scene.collection.children_recursive:
+            if cam in set(col.objects):
+                col.name = cam.name

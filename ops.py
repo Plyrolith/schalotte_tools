@@ -677,3 +677,25 @@ class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
             return {"CANCELLED"}
 
         return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_FixCamRigNames(Operator):
+    """Adjust all camera rig names to match the shot order."""
+
+    bl_idname = "schalotte.fix_cam_rig_names"
+    bl_label = "Fix Cam Rig Names"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Rename collections, cameras, rigs, data and actions to match the shot order.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        schalotte.fix_cam_rig_names(context.scene)
+        return {"FINISHED"}
