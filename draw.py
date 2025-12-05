@@ -202,7 +202,7 @@ def casting_ui(self: Panel, context: Context):
             icon=link_icon if link.library_name else "BLANK1",
         )
         op_link = row_link.operator(
-            operator=ops.SCHALOTTETOOL_OT_LinkAsset.bl_idname,
+            operator=ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
             text="",
             icon="PLUS" if link.library_name else link_icon,
         )
@@ -216,7 +216,7 @@ def casting_ui(self: Panel, context: Context):
             link.file_path and not link.library_name for link in c.links
         )
         op_all = row_all.operator(
-            operator=ops.SCHALOTTETOOL_OT_LinkAsset.bl_idname,
+            operator=ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
             text="Append All Missing" if is_storyboard else "Link All Missing",
             icon=link_icon,
         )

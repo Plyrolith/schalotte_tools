@@ -528,11 +528,10 @@ class SCHALOTTETOOL_OT_FetchCasting(Operator):
 
 
 @catalog.bpy_register
-class SCHALOTTETOOL_OT_LinkAsset(Operator):
-    """Link a cast asset to a scene."""
+class SCHALOTTETOOL_OT_ImportAsset(Operator):
 
-    bl_idname = "schalotte.link_asset"
-    bl_label = "Link Asset"
+    bl_idname = "schalotte.import_asset"
+    bl_label = "Import Asset"
     bl_options = {"REGISTER", "UNDO"}
 
     index: IntProperty(default=-1)
@@ -577,6 +576,20 @@ class SCHALOTTETOOL_OT_LinkAsset(Operator):
         name="Mode",
         default="EDITABLE_OVERRIDE",
     )
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        match properties.mode:
+            case "INSTANCE":
+                return "Instantiate a cast asset to the scene"
+            case "STATIC_OVERRIDE":
+                return "Create a static override for a cast asset"
+            case "EDITABLE_OVERRIDE":
+                return "Create a fully animatable override for a cast asset"
+            case "APPEND":
+                return "Append a cast asset to the scene"
+            case _:
+                return "Import a cast asset to the scene, based on its staging state"
 
     @classmethod
     def poll(cls, context) -> bool:
@@ -641,7 +654,7 @@ class SCHALOTTETOOL_OT_LinkAsset(Operator):
 
 @catalog.bpy_register
 class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
-    """Select pose bones of an object."""
+    """Select pose bones of an object"""
 
     bl_idname = "schalotte.select_pose_bones"
     bl_label = "Select Pose Bones"
@@ -683,7 +696,7 @@ class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
 
 @catalog.bpy_register
 class SCHALOTTETOOL_OT_FixCamRigNames(Operator):
-    """Adjust all camera rig names to match the shot order."""
+    """Adjust all camera rig names to match the shot order"""
 
     bl_idname = "schalotte.fix_cam_rig_names"
     bl_label = "Fix Cam Rig Names"

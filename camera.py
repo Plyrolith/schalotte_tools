@@ -144,6 +144,7 @@ class Camera(catalog.WindowManagerModule):
     hide_inactive_cameras: BoolProperty(
         name="Hide Inactive Cameras",
         update=update_hide_inactive_cameras,
+        description="Automatically hide all inactive cameras and rigs on frame change",
     )
 
     passepartout_alpha: EnumProperty(
