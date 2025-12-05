@@ -695,16 +695,20 @@ class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
 
 
 @catalog.bpy_register
-class SCHALOTTETOOL_OT_FixCamRigNames(Operator):
-    """Adjust all camera rig names to match the shot order"""
+class SCHALOTTETOOL_OT_FixStoryboardNames(Operator):
+    """Reorder StoryLiner shots and rename all names to match the shot order"""
 
-    bl_idname = "schalotte.fix_cam_rig_names"
-    bl_label = "Fix Cam Rig Names"
+    bl_idname = "schalotte.fix_storyboard_names"
+    bl_label = "Fix Storyboard Names"
     bl_options = {"REGISTER", "UNDO"}
+
+    sort_shots: BoolProperty(name="Sort StoryLiner Shots", default=True)
+    rename_shots: BoolProperty(name="Rename Storyboarder Shots", default=True)
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
-        Rename collections, cameras, rigs, data and actions to match the shot order.
+        Sort StoryLiner shots, rename collections, cameras, rigs, data and actions to
+        match the new shot order.
 
         Args:
             context (Context)
@@ -712,7 +716,17 @@ class SCHALOTTETOOL_OT_FixCamRigNames(Operator):
         Returns:
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
+        # Sort shots
+        if self.sort_shots:
+            schalotte.sort_storyliner_shots(context.scene)
+
+        # Rename shots
+        if self.rename_shots:
+            schalotte.rename_storyliner_shots(context.scene)
+
+        # Fix camera rig names
         schalotte.fix_cam_rig_names(context.scene)
+
         return {"FINISHED"}
 
 

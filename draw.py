@@ -43,7 +43,7 @@ def storyboard_ui(self: Panel, context: Context):
     layout.row().operator(ops.SCHALOTTETOOL_OT_AddSoundStrips.bl_idname, icon="SOUND")
 
     layout.row().operator(
-        ops.SCHALOTTETOOL_OT_FixCamRigNames.bl_idname,
+        ops.SCHALOTTETOOL_OT_FixStoryboardNames.bl_idname,
         icon="WORDWRAP_OFF",
     )
 

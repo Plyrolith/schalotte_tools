@@ -733,3 +733,41 @@ def fix_cam_rig_names(scene: Scene | None = None):
             if marker.camera:
                 i += 1
                 rename_cam_rig(marker.camera, f"cam_sh{i:03d}0")
+
+
+def rename_storyliner_shots(scene: Scene | None = None):
+    """
+    Rename Storyliner shots in order.
+
+    Args:
+        scene (Scene): Scene to use, defaults to context
+    """
+    if not scene:
+        scene = bpy.context.scene
+
+    props = scene.WkStoryLiner_props  # type: ignore
+
+    # First iteration to ensure unique names
+    for shot in props.getShotsList():
+        shot.name = "tmp"
+
+    # Actual renaming
+    for i, shot in enumerate(props.getShotsList(), 1):
+        shot.name = f"sh{i:03d}0"
+
+
+def sort_storyliner_shots(scene: Scene | None = None):
+    """
+    Sort the Storyliner shots list by their start frame and adjust their names.
+
+    Args:
+        scene (Scene): Scene to use, defaults to context
+    """
+    if not scene:
+        scene = bpy.context.scene
+
+    props = scene.WkStoryLiner_props  # type: ignore
+    for i in range(len(props.getShotsList())):
+        sorted_shots = sorted(props.getShotsList(), key=lambda x: x.start)
+        target_shot = sorted_shots[i]
+        props.moveShotToIndex(target_shot, i)
