@@ -288,3 +288,40 @@ def string_to_list(string: str, delimiter: str = "␟") -> list[str]:
         list[str]: The converted list
     """
     return string.split(delimiter)
+
+
+def copy_pose(source: Object, target: Object):
+    """
+    Copy the current pose from one armature object to another.
+
+    Args:
+        source (Object): The source armature object.
+        target (Object): The target armature object.
+    """
+    props = (
+        "location",
+        "rotation_axis_angle",
+        "rotation_euler",
+        "rotation_mode",
+        "rotation_quaternion",
+        "scale",
+    )
+
+    # Set object transforms
+    for prop in props:
+        setattr(target, prop, getattr(source, prop))
+
+    # Set pose bone props
+    for pbone_s in source.pose.bones:
+        pbone_t = target.pose.bones.get(pbone_s.name)
+        if not pbone_t:
+            log.warning(f"Bone {pbone_s.name} does not exist on {target.name}.")
+            continue
+
+        # Set transforms
+        for prop in props:
+            setattr(pbone_t, prop, getattr(pbone_s, prop))
+
+        # Set custom attributes
+        for k, v in pbone_s.items():
+            pbone_t[k] = v

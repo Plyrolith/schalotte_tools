@@ -41,6 +41,18 @@ def storyboard_ui(self: Panel, context: Context):
     layout = self.layout
     layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname, icon="PRESET")
     layout.row().operator(ops.SCHALOTTETOOL_OT_AddSoundStrips.bl_idname, icon="SOUND")
+
+    row_add = layout.row(align=True)
+    row_add.operator(
+        ops.SCHALOTTETOOL_OT_AddShot.bl_idname,
+        icon="CON_CAMERASOLVER",
+    ).use_current_camera = True
+    row_add.operator(
+        ops.SCHALOTTETOOL_OT_AddShot.bl_idname,
+        text="",
+        icon="ADD",
+    ).use_current_camera = False
+
     layout.row().operator(
         ops.SCHALOTTETOOL_OT_FixCamRigNames.bl_idname,
         icon="WORDWRAP_OFF",

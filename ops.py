@@ -4,8 +4,10 @@ from typing import Literal, TYPE_CHECKING
 if TYPE_CHECKING:
     from bpy.types import Context, Event
 
+import colorsys
 from pathlib import Path
 import pprint
+import random
 import tempfile
 
 import bpy
@@ -17,7 +19,7 @@ from bpy.props import (
     IntProperty,
     StringProperty,
 )
-from bpy.types import Operator, OperatorFileListElement
+from bpy.types import Operator, OperatorFileListElement, OperatorProperties
 from . import casting, catalog, client, logger, schalotte, session, utils
 
 
@@ -698,4 +700,91 @@ class SCHALOTTETOOL_OT_FixCamRigNames(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
         schalotte.fix_cam_rig_names(context.scene)
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_AddShot(Operator):
+
+    bl_idname = "schalotte.add_shot"
+    bl_label = "Add Shot"
+    bl_options = {"REGISTER", "UNDO"}
+
+    use_current_camera: BoolProperty(name="Use Current Camera", default=True)
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        if properties.use_current_camera:
+            return "Add a new StoryLiner shot based on the current camera"
+        else:
+            return "Add a new StoryLiner shot without camera transforms"
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Only if StoryLiner is active.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Scene has StoryLiner properties
+        """
+        return hasattr(context.scene, "WkStoryLiner_props")
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Append a new camera and create a new StoryLiner shot.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        # Append a new camera rig
+        new_col, new_rig, new_cam = schalotte.ensure_camera_rig(context.scene, True)
+        if not new_rig or not new_cam:
+            msg = "Failed to append camera rig."
+            self.report({"ERROR"}, msg)
+            log.error(msg)
+            return {"CANCELLED"}
+
+        # Find the current camera's rig
+        props = context.scene.WkStoryLiner_props  # type: ignore
+        current_rig = None
+        if self.use_current_camera:
+            try:
+                current_rig = props.getCurrentShot().camera.parent
+            except AttributeError:
+                log.error("Unable to not find the current shot's camera rig.")
+
+        # Create the StoryLiner shot
+        frame_start = props.get_frame_end() + 1
+        nb_shots = len(props.getShotsList())
+        shot_name = props.getShotPrefix((nb_shots + 1) * 10)
+
+        props.addShot(  # type: ignore
+            shotType="PREVIZ",
+            atIndex=nb_shots,
+            name=shot_name,
+            start=frame_start,
+            end=frame_start + 50,
+            camera=new_cam,
+            color=colorsys.hsv_to_rgb(random.random(), 0.9, 1.0) + (1.0,),
+            addGreasePencilStoryboard=False,
+            addPresetLayersAndMatsToStbFrame=False,
+            addShotCollection=False,
+        )
+
+        # Rename the new camera
+        schalotte.rename_cam_rig(new_cam, f"cam_{shot_name}", new_col)
+
+        # Copy the current camera's rig pose
+        if current_rig:
+            utils.copy_pose(current_rig, new_rig)
+
+        # Go to the new shot
+        context.scene.frame_current = frame_start
+
         return {"FINISHED"}

@@ -7,6 +7,8 @@ if TYPE_CHECKING:
 
 from pathlib import Path
 import bpy
+import colorsys
+import random
 from . import client, logger, preferences, session, utils
 
 log = logger.get_logger(__name__)
@@ -142,62 +144,83 @@ def find_asset_type_collection(asset_type_name: str) -> Collection | None:
     return bpy.data.collections.get(target_name)
 
 
-def ensure_camera_collection(scene: Scene | None = None) -> Collection | None:
+def ensure_camera_rig(
+    scene: Scene | None = None,
+    force_append: bool = False,
+) -> tuple[Collection | None, Object | None, Object | None]:
     """
     Append the camera collection if it doesn't exist yet.
 
     Args:
         scene (Scene | None): Scene to be set up, defaults to context scene
+        force_append (bool): Append a new camera even if it already exists
 
     Returns:
-        Collection | None
+        tuple[Collection | None, Object | None, Object | None]:
+        Camera rig collection, armature object and camera object, if successful
     """
-    # Try to find the default collection
     col_name = "cam.001"
-    cam_col = bpy.data.collections.get(col_name)
+    col_cam = None
 
-    # Try to find the collection for the first shot:
-    if not cam_col:
-        cam_col = bpy.data.collections.get("cam_sh0010")
+    # Try to find an existing camera collection
+    if not force_append:
+        for name in (
+            col_name,
+            "cam_sh0010",
+        ):
+            col_cam = bpy.data.collections.get(name)
+            if col_cam:
+                break
 
     # Append the camera collection
-    if not cam_col:
+    if not col_cam:
         # Find the setup file
         root_path = find_project_root()
         if not root_path:
             log.error("Could not find production directory")
-            return
+            return (None, None, None)
         setup_file = root_path / STB_SETUP_FILE_REL
         if not setup_file.is_file():
             log.error(f"File not found: {setup_file}")
-            return
+            return (None, None, None)
 
         # Append
         log.debug(f"Appending: {setup_file}")
-        cam_col = utils.append_collection(setup_file, col_name)
-        if not cam_col:
+        col_cam = utils.append_collection(setup_file, col_name)
+        if not col_cam:
             log.error(f"Failed to append camera collection: {col_name}")
-            return
-        cam_col.color_tag = "COLOR_08"
+            return (None, None, None)
+        col_cam.color_tag = "COLOR_08"
 
     # Add to #CAM collection
     parent_name = "#CAM"
-    parent_col = bpy.data.collections.get(parent_name)
-    if not parent_col:
-        parent_col = bpy.data.collections.new(parent_name)
-        parent_col.color_tag = "COLOR_08"
+    col_parent = bpy.data.collections.get(parent_name)
+    if not col_parent:
+        col_parent = bpy.data.collections.new(parent_name)
+        col_parent.color_tag = "COLOR_08"
 
     # Add camera collection to #CAM
-    if cam_col not in set(parent_col.children):
-        parent_col.children.link(cam_col)
+    if col_cam not in set(col_parent.children):
+        col_parent.children.link(col_cam)
 
     # Ensure #CAM collection is in scene
     if not scene:
         scene = bpy.context.scene
-    if parent_col not in set(scene.collection.children):
-        scene.collection.children.link(parent_col)
+    if col_parent not in set(scene.collection.children):
+        scene.collection.children.link(col_parent)
 
-    return cam_col
+    # Find objects
+    obj_cam = None
+    obj_rig = None
+    for obj in col_cam.all_objects:
+        if obj.type == "CAMERA":
+            obj_cam = obj
+        elif obj.type == "ARMATURE":
+            obj_rig = obj
+        if obj_cam and obj_rig:
+            break
+
+    return (col_cam, obj_rig, obj_cam)
 
 
 def ensure_storyboard_material(name: str = "SCH_stb_shad_ao_085") -> Material:
@@ -506,7 +529,7 @@ def setup_storyboard(scene: Scene | None = None):
                     slot.material = material
 
     # Camera
-    ensure_camera_collection(scene)
+    ensure_camera_rig(scene, False)
 
     # World
     scene.world = ensure_storyboard_world()
@@ -632,6 +655,67 @@ def setup_storyliner(scene: Scene | None = None):
     # Initialize
     bpy.ops.wksl_stamp_info.initialize()  # type: ignore
 
+    # Create first shot
+    if not scene_props.getShotsList():
+        col, _, cam = ensure_camera_rig(scene, False)
+        if not cam:
+            return
+        scene_props.addShot(  # type: ignore
+            shotType="PREVIZ",
+            atIndex=0,
+            name="sh0010",
+            start=1,
+            end=51,
+            camera=cam,
+            color=colorsys.hsv_to_rgb(random.random(), 0.9, 1.0) + (1.0,),
+            addGreasePencilStoryboard=False,
+            addPresetLayersAndMatsToStbFrame=False,
+            addShotCollection=False,
+        )
+        rename_cam_rig(cam, "cam_sh0010", col)
+
+
+def rename_cam_rig(
+    camera_obj: Object,
+    name: str,
+    collection: Collection | None = None,
+):
+    """
+    Rename a camera, its collection, rig object, data and actions.
+
+    Args:
+       camera_obj (Object): The camera object to rename.
+       name (str): The new name for the camera.
+       collection (Collection | None): The rig collection, will be searched if None
+    """
+    # Data and actions
+    if camera_obj.animation_data and camera_obj.animation_data.action:
+        camera_obj.animation_data.action.name = f"{name}_Action"
+    camera_obj.data.name = f"{name}_Data"
+    if camera_obj.data.animation_data and camera_obj.data.animation_data.action:
+        camera_obj.data.animation_data.action.name = f"{camera_obj.data.name}_Action"
+
+    # Rig, data and actions
+    rig = camera_obj.parent
+    if rig:
+        rig.name = f"{name}_Rig"
+        if rig.animation_data and rig.animation_data.action:
+            rig.animation_data.action.name = f"{rig.name}_Action"
+        if rig.data:
+            rig.data.name = f"{rig.name}_Data"
+            if rig.data.animation_data and rig.data.animation_data.action:
+                rig.data.animation_data.action.name = f"{rig.data.name}_Action"
+
+    # Collection
+    if collection:
+        collection.name = name
+        return
+
+    for col in bpy.data.collections:
+        if camera_obj in set(col.objects):
+            col.name = name
+            break
+
 
 def fix_cam_rig_names(scene: Scene | None = None):
     """
@@ -641,15 +725,11 @@ def fix_cam_rig_names(scene: Scene | None = None):
     if not scene:
         scene = bpy.context.scene
 
-    cameras: set[Object] = set()
-
-    # Collect from Storyliner and rename
+    # Get from Storyliner and rename
     if hasattr(scene, "WkStoryLiner_props"):
-        for take in scene.WkStoryLiner_props.takes:  # type: ignore
-            for shot in take.shots:
-                if shot.camera:
-                    shot.camera.name = f"cam_{shot.name}"
-                    cameras.add(shot.camera)
+        for shot in scene.WkStoryLiner_props.getShotsList():  # type: ignore
+            if shot.camera:
+                rename_cam_rig(shot.camera, f"cam_{shot.name}")
 
     # ... or use timeline markers and rename
     else:
@@ -657,30 +737,4 @@ def fix_cam_rig_names(scene: Scene | None = None):
         for marker in scene.timeline_markers:
             if marker.camera:
                 i += 1
-                marker.camera.name = f"sh{i:03d}0"
-                cameras.add(marker.camera)
-
-    # Rename all other relevant data
-    for cam in cameras:
-        # Data and actions
-        if cam.animation_data and cam.animation_data.action:
-            cam.animation_data.action.name = f"{cam.name}_Action"
-        cam.data.name = f"{cam.name}_Data"
-        if cam.data.animation_data and cam.data.animation_data.action:
-            cam.data.animation_data.action.name = f"{cam.data.name}_Action"
-
-        # Rig, data and actions
-        rig = cam.parent
-        if rig:
-            rig.name = f"{cam.name}_Rig"
-            if rig.animation_data and rig.animation_data.action:
-                rig.animation_data.action.name = f"{rig.name}_Action"
-            if rig.data:
-                rig.data.name = f"{rig.name}_Data"
-                if rig.data.animation_data and rig.data.animation_data.action:
-                    rig.data.animation_data.action.name = f"{rig.data.name}_Action"
-
-        # Collection
-        for col in scene.collection.children_recursive:
-            if cam in set(col.objects):
-                col.name = cam.name
+                rename_cam_rig(marker.camera, f"cam_sh{i:03d}0")
