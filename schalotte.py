@@ -661,16 +661,11 @@ def setup_storyliner(scene: Scene | None = None):
         if not cam:
             return
         scene_props.addShot(  # type: ignore
-            shotType="PREVIZ",
-            atIndex=0,
             name="sh0010",
             start=1,
             end=51,
             camera=cam,
             color=colorsys.hsv_to_rgb(random.random(), 0.9, 1.0) + (1.0,),
-            addGreasePencilStoryboard=False,
-            addPresetLayersAndMatsToStbFrame=False,
-            addShotCollection=False,
         )
         rename_cam_rig(cam, "cam_sh0010", col)
 

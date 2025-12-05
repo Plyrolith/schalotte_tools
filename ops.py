@@ -778,16 +778,11 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
         shot_name = props.getShotPrefix((nb_shots + 1) * 10)
 
         props.addShot(  # type: ignore
-            shotType="PREVIZ",
-            atIndex=nb_shots,
             name=shot_name,
             start=frame_start,
             end=frame_start + 50,
             camera=new_cam,
             color=colorsys.hsv_to_rgb(random.random(), 0.9, 1.0) + (1.0,),
-            addGreasePencilStoryboard=False,
-            addPresetLayersAndMatsToStbFrame=False,
-            addShotCollection=False,
         )
 
         # Rename the new camera
