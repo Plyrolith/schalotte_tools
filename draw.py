@@ -42,6 +42,11 @@ def storyboard_ui(self: Panel, context: Context):
     layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname, icon="PRESET")
     layout.row().operator(ops.SCHALOTTETOOL_OT_AddSoundStrips.bl_idname, icon="SOUND")
 
+    layout.row().operator(
+        ops.SCHALOTTETOOL_OT_FixCamRigNames.bl_idname,
+        icon="WORDWRAP_OFF",
+    )
+
     row_add = layout.row(align=True)
     row_add.operator(
         ops.SCHALOTTETOOL_OT_AddShot.bl_idname,
@@ -52,11 +57,6 @@ def storyboard_ui(self: Panel, context: Context):
         text="",
         icon="ADD",
     ).use_current_camera = False
-
-    layout.row().operator(
-        ops.SCHALOTTETOOL_OT_FixCamRigNames.bl_idname,
-        icon="WORDWRAP_OFF",
-    )
 
 
 def preview_ui(self: Panel, context: Context):
