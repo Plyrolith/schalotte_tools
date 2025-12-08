@@ -41,6 +41,8 @@ class Camera(catalog.WindowManagerModule):
         """
         if hide_inactive_cameras not in bpy.app.handlers.frame_change_post:
             bpy.app.handlers.frame_change_post.append(hide_inactive_cameras)
+        if hide_inactive_cameras not in bpy.app.handlers.animation_playback_post:
+            bpy.app.handlers.animation_playback_post.append(hide_inactive_cameras)
 
     @classmethod
     def deregister(cls):
@@ -49,6 +51,8 @@ class Camera(catalog.WindowManagerModule):
         """
         if hide_inactive_cameras in bpy.app.handlers.frame_change_post:
             bpy.app.handlers.frame_change_post.remove(hide_inactive_cameras)
+        if hide_inactive_cameras in bpy.app.handlers.animation_playback_post:
+            bpy.app.handlers.animation_playback_post.remove(hide_inactive_cameras)
 
     @staticmethod
     def get_all_cameras_in_scene(scene: Scene | None = None) -> Iterator[Object]:
