@@ -789,7 +789,10 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
                 log.error("Unable to not find the current shot's camera rig.")
 
         # Create the StoryLiner shot
-        frame_start = props.get_frame_end() + 1
+        frame_start = 1
+        for shot in props.getShotsList():
+            if shot.end > frame_start:
+                frame_start = shot.end + 1
         nb_shots = len(props.getShotsList())
         shot_name = props.getShotPrefix((nb_shots + 1) * 10)
 
