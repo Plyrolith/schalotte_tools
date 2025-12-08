@@ -2,7 +2,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import Collection, CompositorNodeTree, Material, Object, Scene, World
+    from bpy.types import (
+        Collection,
+        CompositorNodeTree,
+        Context,
+        Material,
+        Object,
+        Scene,
+        World,
+    )
 
 
 from pathlib import Path
@@ -777,3 +785,24 @@ def sort_storyliner_shots(scene: Scene | None = None):
         sorted_shots = sorted(props.getShotsList(), key=lambda x: x.start)
         target_shot = sorted_shots[i]
         props.moveShotToIndex(target_shot, i)
+
+
+def remove_storyliner_shot_gaps(context: Context | None = None):
+    """
+    Remove all gaps between StoryLiner shots and make them linear.
+
+    Args:
+        context (Context)
+    """
+    if not context:
+        context = bpy.context
+
+    props = context.scene.WkStoryLiner_props  # type: ignore
+    last_frame = None
+    for shot in sorted(props.getShotsList(), key=lambda x: x.start):
+        if last_frame is None:
+            last_frame = shot.end + 1
+            continue
+
+        shot.offsetToFrame(context, last_frame)
+        last_frame = shot.end + 1

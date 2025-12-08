@@ -812,3 +812,37 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
         context.scene.frame_current = frame_start
 
         return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_RemoveStoryLinerGaps(Operator):
+
+    bl_idname = "schalotte.remove_storyliner_gaps"
+    bl_label = "Remove Shot Gaps"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Only if StoryLiner is active.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Scene has StoryLiner properties
+        """
+        return hasattr(context.scene, "WkStoryLiner_props")
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Remove gaps between StoryLiner shots.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        schalotte.remove_storyliner_shot_gaps(context)
+        return {"FINISHED"}
