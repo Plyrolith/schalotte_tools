@@ -726,6 +726,8 @@ class SCHALOTTETOOL_OT_FixStoryboardNames(Operator):
 
         # Fix camera rig names
         schalotte.fix_cam_rig_names(context.scene)
+        # Run twice to ensure unique names
+        schalotte.fix_cam_rig_names(context.scene)
 
         return {"FINISHED"}
 
