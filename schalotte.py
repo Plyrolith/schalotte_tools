@@ -121,7 +121,10 @@ def find_asset_blend(asset_name: str, asset_type_name: str) -> Path | None:
         return
 
     # Get all .blend files and pick the first one, sorted in lowercase
-    blend_files = sorted(asset_dir.glob("*.blend"), key=lambda f: f.stem.lower())
+    blend_files = sorted(
+        [f for f in asset_dir.glob("*.blend") if not f.name.startswith(".")],
+        key=lambda f: f.stem.lower(),
+    )
     if not blend_files:
         log.debug(f"Asset file not found for {asset_name}")
         return
