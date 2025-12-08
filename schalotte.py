@@ -686,23 +686,25 @@ def rename_cam_rig(
        name (str): The new name for the camera.
        collection (Collection | None): The rig collection, will be searched if None
     """
+    camera_obj.name = name
+
     # Data and actions
     if camera_obj.animation_data and camera_obj.animation_data.action:
         camera_obj.animation_data.action.name = f"{name}_Action"
     camera_obj.data.name = f"{name}_Data"
     if camera_obj.data.animation_data and camera_obj.data.animation_data.action:
-        camera_obj.data.animation_data.action.name = f"{camera_obj.data.name}_Action"
+        camera_obj.data.animation_data.action.name = f"{name}_Data_Action"
 
     # Rig, data and actions
     rig = camera_obj.parent
     if rig:
         rig.name = f"{name}_Rig"
         if rig.animation_data and rig.animation_data.action:
-            rig.animation_data.action.name = f"{rig.name}_Action"
+            rig.animation_data.action.name = f"{name}_Rig_Action"
         if rig.data:
-            rig.data.name = f"{rig.name}_Data"
+            rig.data.name = f"{name}_Rig_Data"
             if rig.data.animation_data and rig.data.animation_data.action:
-                rig.data.animation_data.action.name = f"{rig.data.name}_Action"
+                rig.data.animation_data.action.name = f"{name}_Rig_Data_Action"
 
     # Collection
     if collection:
@@ -725,9 +727,10 @@ def fix_cam_rig_names(scene: Scene | None = None):
 
     # Get from Storyliner and rename
     if hasattr(scene, "WkStoryLiner_props"):
-        for shot in scene.WkStoryLiner_props.getShotsList():  # type: ignore
+        props = scene.WkStoryLiner_props  # type: ignore
+        for shot in props.getShotsList():
             if shot.camera:
-                rename_cam_rig(shot.camera, f"cam_{shot.name}")
+                rename_cam_rig(shot.camera, f"cam_{props.sequence_name}_{shot.name}")
 
     # ... or use timeline markers and rename
     else:
