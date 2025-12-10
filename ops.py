@@ -20,7 +20,7 @@ from bpy.props import (
     StringProperty,
 )
 from bpy.types import Operator, OperatorFileListElement, OperatorProperties
-from . import casting, catalog, client, logger, schalotte, session, utils
+from . import camera, casting, catalog, client, logger, schalotte, session, utils
 
 
 log = logger.get_logger(__name__)
@@ -806,6 +806,9 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
 
         # Rename the new camera
         schalotte.rename_cam_rig(new_cam, f"cam_{shot_name}", new_col)
+
+        # Camera settings
+        camera.CameraSettings.this().set_up_camera(new_cam.data)  # type: ignore
 
         # Copy the current camera's rig pose
         if current_rig:

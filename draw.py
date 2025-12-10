@@ -290,7 +290,7 @@ def camera_ui(self: Panel, context: Context):
 
     # Camera UI
     layout = self.layout
-    c = camera.Camera.this()
+    c = camera.CameraSettings.this()
 
     # Hide inactive
     icon_hide = "RESTRICT_VIEW_ON" if c.hide_inactive_cameras else "RESTRICT_VIEW_OFF"
@@ -369,12 +369,28 @@ def camera_ui(self: Panel, context: Context):
 
     layout.row()
 
-    # Passepartout
-    view_3d = bpy.context.preferences.themes[0].view_3d
+    # Camera
     col_cam = layout.column()
-    # col_cam.use_property_split = True
+
+    # StoryLiner passepartout
+    storyliner = context.preferences.addons.get("storyliner")
+    if storyliner:
+        row_slpasse = col_cam.row()
+        row_slpasse.prop(
+            storyliner.preferences,
+            "playback_useOpaquePassePartout",
+            text="Auto Passepartout",
+            icon="EVENT_MEDIAPLAY",
+            toggle=True,
+        )
+
+    # Passepartout
     row_passe = col_cam.row(align=True)
+    row_passe.enabled = (
+        storyliner and not storyliner.preferences.playback_useOpaquePassePartout  # type: ignore
+    )
     row_passe.prop(c, "passepartout_alpha", expand=True)
+    view_3d = bpy.context.preferences.themes[0].view_3d
     row_passe.prop(view_3d, "camera_passepartout", text="")
 
     # Guides

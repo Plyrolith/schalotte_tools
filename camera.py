@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Iterator
-    from bpy.types import Context, Object, Scene
+    from bpy.types import Camera, Context, Object
 
 import bpy
 from bpy.props import BoolProperty, EnumProperty
+from bpy.types import Scene, PropertyGroup
 
 from . import catalog, logger
 
@@ -23,22 +24,30 @@ def hide_inactive_cameras(_):
     if bpy.context.screen.is_animation_playing:
         return
 
-    c = Camera.this()
+    c = CameraSettings.this()
     if c.hide_inactive_cameras:
         c.update_hide_inactive_cameras(bpy.context)
 
 
-@catalog.bpy_window_manager
-class Camera(catalog.WindowManagerModule):
-    """Camera module"""
+@catalog.bpy_register
+class CameraSettings(PropertyGroup):
+    """Camera settings module"""
 
-    module: str = "camera"
+    module: str = "camera_settings"
+
+    @classmethod
+    def this(cls) -> CameraSettings:
+        return bpy.context.scene.camera_settings  # type: ignore
 
     @classmethod
     def register(cls):
         """
-        Add handler to hide inactive cameras post frame change.
+        Register with scenes. Add handler to hide inactive cameras post frame change.
         """
+        # Register as scene property
+        setattr(Scene, cls.module, bpy.props.PointerProperty(type=cls))
+
+        # Add handlers
         if hide_inactive_cameras not in bpy.app.handlers.frame_change_post:
             bpy.app.handlers.frame_change_post.append(hide_inactive_cameras)
         if hide_inactive_cameras not in bpy.app.handlers.animation_playback_post:
@@ -145,6 +154,19 @@ class Camera(catalog.WindowManagerModule):
         if active_cam.parent:  # type: ignore
             active_cam.parent.hide_viewport = False  # type: ignore
 
+    def set_up_camera(self, camera: Camera):
+        """
+        Set up given camera according to the scene settings.
+
+        Args:
+            camera (Camera): Camera data object
+        """
+        camera.show_passepartout = True  # type: ignore
+        camera.passepartout_alpha = float(self.passepartout_alpha)  # type: ignore
+        camera.show_composition_center = self.show_composition_center  # type: ignore
+        camera.show_composition_thirds = self.show_composition_thirds  # type: ignore
+        camera.show_composition_golden = self.show_composition_golden  # type: ignore
+
     hide_inactive_cameras: BoolProperty(
         name="Hide Inactive Cameras",
         update=update_hide_inactive_cameras,
@@ -159,6 +181,7 @@ class Camera(catalog.WindowManagerModule):
         ),
         name="Passepartout",
         update=update_passepartout_alpha,
+        default="0.5",
     )
 
     show_composition_center: BoolProperty(
