@@ -822,6 +822,7 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
 
 @catalog.bpy_register
 class SCHALOTTETOOL_OT_RemoveStoryLinerGaps(Operator):
+    """Remove all StoryLiner gaps and overlaps to make the sequence perfectly linear"""
 
     bl_idname = "schalotte.remove_storyliner_gaps"
     bl_label = "Remove Shot Gaps"

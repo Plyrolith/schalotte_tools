@@ -169,8 +169,8 @@ class CameraSettings(PropertyGroup):
 
     hide_inactive_cameras: BoolProperty(
         name="Hide Inactive Cameras",
-        update=update_hide_inactive_cameras,
         description="Automatically hide all inactive cameras and rigs on frame change",
+        update=update_hide_inactive_cameras,
     )
 
     passepartout_alpha: EnumProperty(
@@ -180,21 +180,25 @@ class CameraSettings(PropertyGroup):
             ("1.0", "Full", "Opaque", "MOD_MASK", 2),
         ),
         name="Passepartout",
-        update=update_passepartout_alpha,
+        description="Opacity (alpha) of the darkened overlay in camera view",
         default="0.5",
+        update=update_passepartout_alpha,
     )
 
     show_composition_center: BoolProperty(
         name="Center",
+        description="Display center composition guide inside the camera view",
         update=update_show_composition_center,
     )
 
     show_composition_golden: BoolProperty(
         name="Golden",
+        description="Display golden ratio composition guide inside the camera view",
         update=update_show_composition_golden,
     )
 
     show_composition_thirds: BoolProperty(
         name="Thirds",
+        description="Display rule of thirds composition guide inside the camera view",
         update=update_show_composition_thirds,
     )
