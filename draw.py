@@ -386,8 +386,8 @@ def camera_ui(self: Panel, context: Context):
 
     # Passepartout
     row_passe = col_cam.row(align=True)
-    row_passe.enabled = (
-        storyliner and not storyliner.preferences.playback_useOpaquePassePartout  # type: ignore
+    row_passe.enabled = bool(
+        not storyliner or not storyliner.preferences.playback_useOpaquePassePartout  # type: ignore
     )
     row_passe.prop(c, "passepartout_alpha", expand=True)
     view_3d = bpy.context.preferences.themes[0].view_3d
