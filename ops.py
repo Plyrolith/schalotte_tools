@@ -805,7 +805,8 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
         )
 
         # Rename the new camera
-        schalotte.rename_cam_rig(new_cam, f"cam_{shot_name}", new_col)
+        sq_name = props.sequence_name
+        schalotte.rename_cam_rig(new_cam, f"cam_{sq_name}_{shot_name}", new_col)
 
         # Camera settings
         camera.CameraSettings.this().set_up_camera(new_cam.data)  # type: ignore
