@@ -429,7 +429,8 @@ def generate_shot_blend_path(task_id: str) -> Path | None:
     # File name
     ep_short = f"e{ep_name[-2:]}"
     sq_short = f"sq{sq_name[-3:-1]}"
-    file_name = f"SCH_s01_{ep_short}_{sq_short}.blend"
+    tt_file = "" if task_name == "Storyboard" else f"_{task_name.split(' ')[0]}"
+    file_name = f"SCH{tt_file}_s01_{ep_short}_{sq_short}.blend"
 
     # Build path
     return project_root / task_dir_name / "s01" / ep_name / sq_name / file_name
