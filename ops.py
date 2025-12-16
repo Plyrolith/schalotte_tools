@@ -310,24 +310,6 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
     bl_label = "Storyboard Setup"
     bl_options = {"REGISTER", "UNDO"}
 
-    @classmethod
-    def poll(cls, context) -> bool:
-        """
-        Only if file is saved and the current task is of the 'storyboard' type.
-
-        Args:
-            context (Context)
-
-        Returns:
-            bool: File is saved, task is active and type is 'storyboard'
-        """
-        s = session.Session.this()
-        return bool(
-            bpy.data.filepath
-            and s.task
-            and s.task.get("task_type_name", "").lower() == "storyboard"
-        )
-
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
         Set up the current scene for storyboarding tasks.
