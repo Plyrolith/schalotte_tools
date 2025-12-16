@@ -55,34 +55,20 @@ class SCHALOTTE_PT_storyboard(Panel):
 
     @classmethod
     def poll(cls, context) -> bool:
-        s = session.Session.this()
-        return bool(
-            bpy.data.filepath
-            and s.task
-            and s.task.get("task_type_name", "").lower() == "storyboard"
-        )
+        return hasattr(context.scene, "WkStoryLiner_props")
 
     def draw(self, context: Context):
         draw.storyboard_ui(self, context)
 
 
 @catalog.bpy_register
-class SCHALOTTE_PT_storyboard_camera(Panel):
-    bl_idname = "SCHALOTTE_PT_storyboard_camera"
+class SCHALOTTE_PT_camera(Panel):
+    bl_idname = "SCHALOTTE_PT_camera"
     bl_category = "Schalotte Tools"
     bl_label = "Camera"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 3
-
-    @classmethod
-    def poll(cls, context) -> bool:
-        s = session.Session.this()
-        return bool(
-            bpy.data.filepath
-            and s.task
-            and s.task.get("task_type_name", "").lower() == "storyboard"
-        )
 
     def draw(self, context: Context):
         draw.camera_ui(self, context)
