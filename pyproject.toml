@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "schalotte_tools"
-version = "1.4.4"
+version = "1.4.5"
 description = "Tools for the Schalotte project"
 authors = ["Tristan Weis <mail@tristanweis.com>"]
 readme = "README.md"
