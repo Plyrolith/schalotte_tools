@@ -7,20 +7,20 @@
       "id": "schalotte_tools",
       "name": "Schalotte Tools",
       "tagline": "Blender tools for the Schalotte project",
-      "version": "1.4.6",
+      "version": "1.4.7",
       "type": "add-on",
       "maintainer": "Tristan Weis",
       "license": [
         "SPDX:GPL-3.0-or-later"
       ],
       "blender_version_min": "4.5.0",
-      "website": "https://github.com/Plyrolith/schalotte-tools",
+      "website": "https://github.com/Plyrolith/schalotte_tools",
       "tags": [
         "Pipeline"
       ],
-      "archive_url": "https://github.com/Plyrolith/schalotte_tools/releases/download/1.4.6/schalotte_tools-1.4.6.zip",
-      "archive_size": 48913,
-      "archive_hash": "sha256:eed77e27e6362979ef2a29159c2024e2de0ee8feac0520ecbf91732c31888fd7"
+      "archive_url": "https://github.com/Plyrolith/schalotte_tools/releases/download/1.4.7/schalotte_tools-1.4.7.zip",
+      "archive_size": 48949,
+      "archive_hash": "sha256:9577be63f13aa235e046c2e7b078174a1bc7a5e520832e811b4cb75c868315b3"
     }
   ]
 }
