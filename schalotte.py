@@ -32,8 +32,9 @@ ASSET_TYPE_MAP = {
 SHOT_TASK_NAME_MAP = {
     "Storyboard": "02_02_storyboard",
     "Layout": "02_03_layout_scene_prep",
-    "Anim Blocking": "02_04_animation",
-    "Anim Splining": "02_04_animation",
+    "Anim Blocking": "02_04_animation/02_03_02_episodes",
+    "Anim Splining": "02_04_animation/02_03_02_episodes",
+    "Anim Polishing": "02_04_animation/02_03_02_episodes",
     "Lighting": "02_05_lighting",
     "FX": "02_06_VFX",
 }
