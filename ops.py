@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Literal, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bpy.types import Context, Event
+    from bpy.types import Context, Event, SoundStrip
 
 import colorsys
 from pathlib import Path
@@ -20,7 +20,17 @@ from bpy.props import (
     StringProperty,
 )
 from bpy.types import Operator, OperatorFileListElement, OperatorProperties
-from . import camera, casting, catalog, client, logger, schalotte, session, utils
+from . import (
+    camera,
+    casting,
+    catalog,
+    client,
+    logger,
+    preferences,
+    schalotte,
+    session,
+    utils,
+)
 
 
 log = logger.get_logger(__name__)
@@ -835,4 +845,159 @@ class SCHALOTTETOOL_OT_RemoveStoryLinerGaps(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
         schalotte.remove_storyliner_shot_gaps(context)
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
+    """Move and/or unpack all external sound files"""
+
+    bl_idname = "schalotte.collect_sound_files"
+    bl_label = "Collect Sound Files"
+    bl_options = set()
+
+    dir_name: StringProperty(
+        name="Directory Name",
+        description="Name of the target directory next to the current file",
+        default="layout_sounds",
+    )
+    mode: EnumProperty(
+        items=(
+            ("COPY", "Copy", "Copy external files"),
+            ("MOVE", "Move", "Move external sound files"),
+            ("NONE", "None", "Do not relocate sound files"),
+        ),
+        name="Relocation Mode",
+        description="The way external files are relocated to their new location",
+    )
+    unpack: BoolProperty(
+        name="Unpack",
+        description="Unpack all packed sound files",
+        default=True,
+    )
+    make_relative: BoolProperty(
+        name="Make Relative",
+        description="Make new filepaths relative",
+        default=True,
+    )
+    expand_external: BoolProperty(
+        name="Expand External",
+        description="Display external strips list",
+    )
+    expand_packed: BoolProperty(
+        name="Expand Packed",
+        description="Display packed strips list",
+    )
+    external_sounds: set[str] = set()
+    packed_sounds: set[str] = set()
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Allow only if file is saved and project root is set.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Project root is set.
+        """
+        return bool(bpy.data.filepath and preferences.Preferences.this().project_root)
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:  # type: ignore
+        """
+        Check for external sounds.
+
+        Parameters:
+            - context (Context)
+            - event (Event)
+
+        Returns:
+            - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        self.external_sounds.clear()
+
+        # Collect external sound strip file paths
+        for sound_strip in schalotte.get_external_sound_strips(context.scene):
+            self.external_sounds.add(sound_strip.sound.filepath)
+
+        # Collect packed sound strip file paths
+        for sound_strip in utils.get_packed_sound_strips(context.scene):
+            self.packed_sounds.add(sound_strip.sound.filepath)
+
+        # Finish if none found
+        if not self.external_sounds and not self.packed_sounds:
+            self.report({"INFO"}, "No external sounds found.")
+            return {"FINISHED"}
+
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context: Context):
+        """
+        Draw properties and an expandable lists of files to be relocated and unpacked.
+
+        Args:
+            context (Context)
+        """
+        layout = self.layout
+        col = layout.column()
+        col.use_property_split = True
+
+        # Relocate
+        if self.external_sounds:
+            col.row().prop(self, "mode", expand=True)
+            if self.mode != "NONE":
+                col.row().prop(self, "dir_name")
+                col.row().prop(self, "make_relative")
+                box_ex = col.box()
+                if utils.show_layout(box_ex, self, "expand_external", "External Files"):
+                    for external_path in sorted(list(self.external_sounds)):
+                        box_ex.row().label(text=Path(external_path).name)
+
+        # Unpack
+        if self.packed_sounds:
+            box_unpack = col.box()
+            row_unpack = box_unpack.row()
+            row_unpack.use_property_split = False
+            if self.unpack:
+                if utils.show_layout(
+                    layout=row_unpack,
+                    data=self,
+                    property="expand_packed",
+                    text="",
+                ):
+                    for packed_path in sorted(list(self.packed_sounds)):
+                        box_unpack.row().label(text=Path(packed_path).name)
+            else:
+                row_unpack_disabled = row_unpack.row()
+                row_unpack_disabled.enabled = False
+                row_unpack_disabled.label(text="", icon="RIGHTARROW")
+            row_unpack.prop(self, "unpack")
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Relocate all external sound strips and unpack them if selected.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if TYPE_CHECKING:
+            sound_strip: SoundStrip
+
+        directory = Path(bpy.data.filepath).parent / self.dir_name
+        if not self.mode == "NONE":
+            for sound_strip in schalotte.get_external_sound_strips(context.scene):
+                utils.move_datablock_filepath(
+                    sound_strip.sound,  # type: ignore
+                    directory,
+                    relative=self.make_relative,
+                    copy=True if self.mode == "COPY" else False,
+                )
+        if self.unpack:
+            for sound_strip in utils.get_packed_sound_strips(context.scene):
+                sound_strip.sound.unpack(method="USE_ORIGINAL")
+
         return {"FINISHED"}

@@ -2,11 +2,22 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Iterable
-    from bpy.types import Bone, Collection, Context, Object, Scene
+    from typing import Iterable, Literal
+    from bpy.types import (
+        Bone,
+        Collection,
+        Context,
+        ID,
+        Object,
+        Operator,
+        Scene,
+        SoundStrip,
+        UILayout,
+    )
 
 import bpy
 from pathlib import Path
+import shutil
 
 from . import logger
 
@@ -325,3 +336,142 @@ def copy_pose(source: Object, target: Object):
         # Set custom attributes
         for k, v in pbone_s.items():
             pbone_t[k] = v
+
+
+def move_datablock_filepath(
+    datablock: ID,
+    directory: Path | str,
+    name: str | None = None,
+    relative: bool = True,
+    copy: bool = False,
+    overwrite: bool = False,
+) -> Path | None:
+    """
+    Move a datablock's filepath to another location.
+
+    Args:
+        datablock (ID): The datablock to move
+        directory (Path | str): The new directory for the datablock
+        name (str | None): New file name, use old name by default
+        relative (bool): Make new path relative
+        copy (bool): Make a copy of the file instead of moving it
+        overwrite (bool): Overwrite file if it already exists
+
+    Returns:
+        Path | None: New file path if move was successful
+    """
+    # Get the source path
+    src = Path(bpy.path.abspath(datablock.filepath))  # type: ignore
+
+    # Generate destination file path
+    if not name:
+        name = src.name
+    dst = Path(directory, name)
+
+    # Check if the current location is already correct
+    if src == dst:
+        return dst
+
+    # Check if the files exist
+    if src.exists():
+        if overwrite or not dst.exists():
+            # Move or copy the file
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if copy:
+                shutil.copy(src, dst)
+            else:
+                src.rename(dst)
+    elif not dst.exists():
+        log.error(f"{datablock.name} file does not exist: {src}")
+
+    # Set new datablock filepath
+    filepath = dst.as_posix()
+    if relative:
+        filepath = bpy.path.relpath(filepath)
+    datablock.filepath = filepath  # type: ignore
+
+    return dst
+
+
+def show_layout(
+    layout: UILayout,
+    data: ID | Operator,
+    property: str,
+    text: str | None = None,
+    alignment: Literal["LEFT", "CENTER", "RIGHT"] = "LEFT",
+    icon: str = "",
+) -> bool:
+    """
+    Draw a foldout control in the current UI.
+
+    Args:
+        layout (UILayout): Layout to draw at
+        data (ID | Operator): Host datablock of the collapse status bool property
+        property (str): Name of the collapse status bool property
+        text (str, optional): Alternative text for label
+        alignment (str):
+            - LEFT
+            - CENTER
+            - RIGHT
+        icon (str): Draw an additional icon of this type
+
+    Returns:
+        bool: Whether the foldout should be drawn or not
+    """
+    enabled = bool(getattr(data, property))
+
+    row_main = layout.row(align=True)
+    row_main.use_property_split = False
+
+    # Button, add text if left
+    row_button = row_main.row(align=True)
+    row_button.alignment = "LEFT"
+    row_button.prop(
+        data=data,
+        property=property,
+        text=text if alignment == "LEFT" and not icon else "",
+        icon_only=False if alignment == "LEFT" or icon else True,
+        icon="DOWNARROW_HLT" if enabled else "RIGHTARROW",
+        emboss=False,
+    )
+
+    # Text in separate property if not left aligned, to be able to separate from button
+    if alignment != "LEFT" or icon:
+        row_text = row_main.row(align=True)
+        row_text.alignment = alignment
+        row_text.prop(
+            data=data,
+            property=property,
+            text=text,
+            icon=icon or "NONE",  # type: ignore
+            toggle=True,
+            emboss=False,
+        )
+
+    return enabled
+
+
+def get_packed_sound_strips(scene: Scene | None = None) -> list[SoundStrip]:
+    """
+    Get all packed sound strips in the scene's sequencer.
+
+    Args:
+        scene (Scene | None): Scene of the sequencer, current if not given
+
+    Returns:
+        list[SoundStrip]: List of packed sound strips
+    """
+    if TYPE_CHECKING:
+        strip: SoundStrip
+
+    if not scene:
+        scene = bpy.context.scene
+
+    packed_strips = []
+    for strip in scene.sequence_editor_create().strips_all:  # type: ignore
+
+        # Check if the strip is packed
+        if strip.type == "SOUND" and strip.sound and strip.sound.packed_file:
+            packed_strips.append(strip)
+
+    return packed_strips

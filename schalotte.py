@@ -9,6 +9,7 @@ if TYPE_CHECKING:
         Material,
         Object,
         Scene,
+        SoundStrip,
         World,
     )
 
@@ -808,3 +809,39 @@ def remove_storyliner_shot_gaps(context: Context | None = None):
 
         shot.offsetToFrame(context, last_frame)
         last_frame = shot.end + 1
+
+
+def get_external_sound_strips(scene: Scene | None = None) -> list[SoundStrip]:
+    """
+    Get all sound strips in the scene that point to an audio file outside of the project
+    root.
+
+    Args:
+        scene (Scene | None): Scene of the sequencer, current if not given
+
+    Returns:
+        list[SoundStrip]: List of sound strips with external files
+    """
+    if TYPE_CHECKING:
+        strip: SoundStrip
+
+    project_root = find_project_root()
+    if not project_root:
+        log.warning("Could not determine project root.")
+        return []
+
+    if not scene:
+        scene = bpy.context.scene
+
+    external_strips = []
+    for strip in scene.sequence_editor_create().strips_all:  # type: ignore
+
+        # Check if the strip is a sound strip with a file path
+        if strip.type == "SOUND" and strip.sound and strip.sound.filepath:
+            sound_path = Path(bpy.path.abspath(strip.sound.filepath)).resolve()
+
+            # Check if the path is relative to project root
+            if not sound_path.is_relative_to(project_root.resolve()):
+                external_strips.append(strip)
+
+    return external_strips

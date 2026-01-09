@@ -83,8 +83,15 @@ class SCHALOTTE_PT_storyboard_sequencer(Panel):
     bl_region_type = "UI"
 
     def draw(self, context: Context):
-        row_sound = self.layout.row()
-        row_sound.operator(ops.SCHALOTTETOOL_OT_AddSoundStrips.bl_idname, icon="SOUND")
+        layout = self.layout
+        layout.row().operator(
+            ops.SCHALOTTETOOL_OT_AddSoundStrips.bl_idname,
+            icon="SOUND",
+        )
+        layout.row().operator(
+            ops.SCHALOTTETOOL_OT_CollectSoundFiles.bl_idname,
+            icon="NLA_PUSHDOWN",
+        )
 
 
 @catalog.bpy_register
