@@ -453,26 +453,26 @@ class SCHALOTTETOOL_OT_AddSoundStrips(Operator, ImportHelper):  # type: ignore
             existing_paths = {}
 
         for file in self.files:
-            filepath = Path(self.directory, file.name)
+            file_path = Path(self.directory, file.name)
 
             # Check if already imported
-            if filepath.resolve() in existing_paths:
-                log.info(f"Skipping existing file: {filepath}")
+            if file_path.resolve() in existing_paths:
+                log.info(f"Skipping existing file: {file_path}")
                 continue
 
             # Check if the file exists
-            if not filepath.is_file():
-                log.error(f"{filepath} does not exist")
+            if not file_path.is_file():
+                log.error(f"{file_path} does not exist")
                 continue
 
             # Make relative
-            filepath = filepath.as_posix()
+            filepath = file_path.as_posix()
             if self.relative_path:
                 filepath = bpy.path.relpath(filepath)
 
             # Create strip
             sequence = sequence_editor.strips.new_sound(
-                name="audio",
+                name=file_path.stem,
                 filepath=filepath,
                 channel=channel,
                 frame_start=current_frame,
