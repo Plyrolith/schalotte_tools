@@ -175,11 +175,18 @@ def ensure_camera_rig(
     col_name = "cam.001"
     col_cam = None
 
+    expected_name = "cam_sh0010"
+    s = session.Session.this()
+    if s.sequence:
+        sequence_name = s.sequence.get("name")
+        if sequence_name:
+            expected_name = f"cam_{sequence_name}_sh0010"
+
     # Try to find an existing camera collection
     if not force_append:
         for name in (
             col_name,
-            "cam_sh0010",
+            expected_name,
         ):
             col_cam = bpy.data.collections.get(name)
             if col_cam:
@@ -588,7 +595,10 @@ def setup_storyliner(scene: Scene | None = None):
     if s.sequence:
         sequence_name = s.sequence.get("name", "sq")
         scene_props.sequence_name = sequence_name
+        cam_name = f"cam_{sequence_name}_sh0010"
         # scene.name = sequence_name
+    else:
+        cam_name = "cam_sh0010"
     scene_props.naming_shot_format = "sh####"
 
     # Stamp info
@@ -681,7 +691,7 @@ def setup_storyliner(scene: Scene | None = None):
             camera=cam,
             color=colorsys.hsv_to_rgb(random.random(), 0.9, 1.0) + (1.0,),
         )
-        rename_cam_rig(cam, "cam_sh0010", col)
+        rename_cam_rig(cam, cam_name, col)
 
 
 def rename_cam_rig(
