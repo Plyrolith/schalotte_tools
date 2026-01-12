@@ -444,6 +444,50 @@ def generate_shot_blend_path(task_id: str) -> Path | None:
     return project_root / task_dir_name / "s01" / ep_name / sq_name / file_name
 
 
+def generate_sound_path(sequence_id: str) -> Path | None:
+    """
+    Generate the expected sound path for given sequence.
+
+    Args:
+        sequence_id (str): Sequence ID
+
+    Returns:
+        Path | None: Path object for the expected sound path, if successful
+    """
+    # Project root
+    project_root = find_project_root()
+    if not project_root:
+        log.error(f"Could not find project root for {sequence_id}.")
+        return
+
+    sequence = client.STORE.get(sequence_id)
+    if not sequence:
+        log.error(f"Sequence {sequence_id} has not been fetched yet.")
+        return
+
+    # Sequence name
+    sq_name = sequence.get("name")
+    if not sq_name:
+        log.error(f"Sequence {sequence_id} has no name.")
+        return
+
+    # Episode
+    eqisode_id = sequence.get("parent_id", "")
+    episode = client.STORE.get(eqisode_id)
+    if not episode:
+        log.error(f"Episode {eqisode_id} has not been fetched yet.")
+        return
+
+    # Episode name
+    ep_name = episode.get("name")
+    if not ep_name:
+        log.error(f"Episode {eqisode_id} has no name.")
+        return
+
+    # Build path
+    return project_root / "02_08_sound" / "s01" / ep_name / sq_name
+
+
 def setup_storyboard(scene: Scene | None = None):
     """
     Set up given scene for Schalotte storyboarding tasks.
@@ -821,12 +865,16 @@ def remove_storyliner_shot_gaps(context: Context | None = None):
         last_frame = shot.end + 1
 
 
-def get_external_sound_strips(scene: Scene | None = None) -> list[SoundStrip]:
+def get_external_sound_strips(
+    root_path: Path | None = None,
+    scene: Scene | None = None,
+) -> list[SoundStrip]:
     """
-    Get all sound strips in the scene that point to an audio file outside of the project
-    root.
+    Get all sound strips in the scene that point to an audio file outside of the given
+    directory or project root.
 
     Args:
+        root_path (Path | None): Internal path, defaults to project root
         scene (Scene | None): Scene of the sequencer, current if not given
 
     Returns:
@@ -835,10 +883,11 @@ def get_external_sound_strips(scene: Scene | None = None) -> list[SoundStrip]:
     if TYPE_CHECKING:
         strip: SoundStrip
 
-    project_root = find_project_root()
-    if not project_root:
-        log.warning("Could not determine project root.")
-        return []
+    if not root_path:
+        root_path = find_project_root()
+        if not root_path:
+            log.warning("Could not determine project root.")
+            return []
 
     if not scene:
         scene = bpy.context.scene
@@ -851,7 +900,7 @@ def get_external_sound_strips(scene: Scene | None = None) -> list[SoundStrip]:
             sound_path = Path(bpy.path.abspath(strip.sound.filepath)).resolve()
 
             # Check if the path is relative to project root
-            if not sound_path.is_relative_to(project_root.resolve()):
+            if not sound_path.is_relative_to(root_path.resolve()):
                 external_strips.append(strip)
 
     return external_strips

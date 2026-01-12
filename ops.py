@@ -26,7 +26,6 @@ from . import (
     catalog,
     client,
     logger,
-    preferences,
     schalotte,
     session,
     utils,
@@ -411,8 +410,11 @@ class SCHALOTTETOOL_OT_AddSoundStrips(Operator, ImportHelper):  # type: ignore
             - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
         file_path = bpy.data.filepath
-        if file_path:
-            layout_takes = Path(file_path).parents[1] / "layout_takes"
+        audio_path = schalotte.generate_sound_path(session.Session.this().sequence_id)
+        if not audio_path and file_path:
+            audio_path = Path(file_path).parents[1]
+        if audio_path:
+            layout_takes = audio_path / "layout_takes"
             if layout_takes.is_dir():
                 self.directory = layout_takes.as_posix()
             else:
@@ -863,21 +865,17 @@ class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
     )
     mode: EnumProperty(
         items=(
+            ("NONE", "None", "Do not relocate sound files"),
             ("COPY", "Copy", "Copy external files"),
             ("MOVE", "Move", "Move external sound files"),
-            ("NONE", "None", "Do not relocate sound files"),
         ),
         name="Relocation Mode",
         description="The way external files are relocated to their new location",
+        default="COPY",
     )
     unpack: BoolProperty(
         name="Unpack",
         description="Unpack all packed sound files",
-        default=True,
-    )
-    make_relative: BoolProperty(
-        name="Make Relative",
-        description="Make new filepaths relative",
         default=True,
     )
     expand_external: BoolProperty(
@@ -902,7 +900,7 @@ class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
         Returns:
             bool: Project root is set.
         """
-        return bool(bpy.data.filepath and preferences.Preferences.this().project_root)
+        return bool(bpy.data.filepath and session.Session.this().sequence)
 
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:  # type: ignore
         """
@@ -916,13 +914,15 @@ class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
             - set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
         self.external_sounds.clear()
+        scene = context.scene
 
         # Collect external sound strip file paths
-        for sound_strip in schalotte.get_external_sound_strips(context.scene):
+        root_path = schalotte.generate_sound_path(session.Session.this().sequence_id)
+        for sound_strip in schalotte.get_external_sound_strips(root_path, scene):
             self.external_sounds.add(sound_strip.sound.filepath)
 
         # Collect packed sound strip file paths
-        for sound_strip in utils.get_packed_sound_strips(context.scene):
+        for sound_strip in utils.get_packed_sound_strips(scene):
             self.packed_sounds.add(sound_strip.sound.filepath)
 
         # Finish if none found
@@ -941,38 +941,49 @@ class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
         """
         layout = self.layout
         col = layout.column()
-        col.use_property_split = True
 
         # Relocate
         if self.external_sounds:
-            col.row().prop(self, "mode", expand=True)
+            box_reloc = col.box()
+            row_reloc = box_reloc.row()
             if self.mode != "NONE":
-                col.row().prop(self, "dir_name")
-                col.row().prop(self, "make_relative")
-                box_ex = col.box()
-                if utils.show_layout(box_ex, self, "expand_external", "External Files"):
+                if utils.show_layout(
+                    layout=row_reloc,
+                    data=self,
+                    property="expand_external",
+                    text="",
+                ):
                     for external_path in sorted(list(self.external_sounds)):
-                        box_ex.row().label(text=Path(external_path).name)
+                        box_reloc.row().label(text=Path(external_path).name, icon="DOT")
+            else:
+                row_reloc_disabled = row_reloc.row()
+                row_reloc_disabled.enabled = False
+                row_reloc_disabled.label(text="", icon="RIGHTARROW")
+            row_reloc_enum = row_reloc.row(align=True)
+            if self.packed_sounds:
+                row_reloc_enum.prop_enum(self, "mode", "NONE")
+            row_reloc_enum.prop_enum(self, "mode", "COPY")
+            row_reloc_enum.prop_enum(self, "mode", "MOVE")
 
         # Unpack
         if self.packed_sounds:
             box_unpack = col.box()
             row_unpack = box_unpack.row()
-            row_unpack.use_property_split = False
             if self.unpack:
                 if utils.show_layout(
                     layout=row_unpack,
                     data=self,
                     property="expand_packed",
-                    text="",
+                    text="" if self.external_sounds else "Unpack",
                 ):
                     for packed_path in sorted(list(self.packed_sounds)):
-                        box_unpack.row().label(text=Path(packed_path).name)
+                        box_unpack.row().label(text=Path(packed_path).name, icon="DOT")
             else:
                 row_unpack_disabled = row_unpack.row()
                 row_unpack_disabled.enabled = False
                 row_unpack_disabled.label(text="", icon="RIGHTARROW")
-            row_unpack.prop(self, "unpack")
+            if self.external_sounds:
+                row_unpack.prop(self, "unpack")
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -987,17 +998,31 @@ class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
         if TYPE_CHECKING:
             sound_strip: SoundStrip
 
-        directory = Path(bpy.data.filepath).parent / self.dir_name
+        if self.mode == "NONE" and not self.unpack:
+            self.report({"ERROR_INVALID_INPUT"}, "No operation selected.")
+            return {"CANCELLED"}
+
+        scene = context.scene
+        root_path = schalotte.generate_sound_path(session.Session.this().sequence_id)
+        if not root_path:
+            log.error("Could not determine sound path.")
+            return {"CANCELLED"}
+
         if not self.mode == "NONE":
-            for sound_strip in schalotte.get_external_sound_strips(context.scene):
+            for sound_strip in schalotte.get_external_sound_strips(root_path, scene):
+                if Path(sound_strip.sound.filepath).stem.startswith("Sch_ep"):
+                    directory = root_path / "layout_takes"
+                else:
+                    directory = root_path / "layout_sfx"
                 utils.move_datablock_filepath(
                     sound_strip.sound,  # type: ignore
                     directory,
-                    relative=self.make_relative,
+                    relative=True,
                     copy=True if self.mode == "COPY" else False,
+                    overwrite=False,
                 )
         if self.unpack:
-            for sound_strip in utils.get_packed_sound_strips(context.scene):
+            for sound_strip in utils.get_packed_sound_strips(scene):
                 sound_strip.sound.unpack(method="USE_ORIGINAL")
 
         return {"FINISHED"}
