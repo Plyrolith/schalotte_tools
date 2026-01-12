@@ -4,7 +4,6 @@ from typing import Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from bpy.types import Collection, Library, Object, Scene, ViewLayer
 
-from pathlib import Path
 import bpy
 from bpy.props import CollectionProperty, IntProperty, StringProperty
 from bpy.types import PropertyGroup
