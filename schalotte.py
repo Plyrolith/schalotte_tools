@@ -723,6 +723,12 @@ def setup_storyliner(scene: Scene | None = None):
     # Initialize
     bpy.ops.wksl_stamp_info.initialize()  # type: ignore
 
+    # Rename take
+    if bpy.data.filepath:
+        for take in scene_props.takes:
+            if take.name == "Main Edit":
+                take.name = Path(bpy.data.filepath).stem
+
     # Create first shot
     if not scene_props.getShotsList():
         col, _, cam = ensure_camera_rig(scene, False)
