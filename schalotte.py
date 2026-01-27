@@ -553,7 +553,7 @@ def setup_storyboard(scene: Scene | None = None):
             scene.collection.children.link(col)
         col.color_tag = color  # type: ignore
 
-    # Get all character objects to exclude from re-shading
+    # Get all character and FX objects to exclude from re-shading
     char_col = bpy.data.collections.get("#CH")
     if char_col:
         char_objs = set(char_col.all_objects)
@@ -561,11 +561,18 @@ def setup_storyboard(scene: Scene | None = None):
         char_objs = set()
         log.warning("Could not find #CH collection")
 
+    fx_col = bpy.data.collections.get("#FX")
+    if fx_col:
+        fx_objs = set(fx_col.all_objects)
+    else:
+        fx_objs = set()
+        log.warning("Could not find #FX collection")
+
     # Shader
     material = ensure_storyboard_material()
     for obj in scene.objects:
-        # Skip characters
-        if obj in char_objs:
+        # Skip characters and FX
+        if obj in char_objs or obj in fx_objs:
             continue
         # Skip linked and overrides
         if obj.library or obj.override_library:
