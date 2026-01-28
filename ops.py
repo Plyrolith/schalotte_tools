@@ -8,6 +8,7 @@ import colorsys
 from pathlib import Path
 import pprint
 import random
+import re
 import tempfile
 
 import bpy
@@ -690,14 +691,14 @@ class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
 
 @catalog.bpy_register
 class SCHALOTTETOOL_OT_FixStoryboardNames(Operator):
-    """Reorder StoryLiner shots and rename all names to match the shot order"""
+    """Reorder shots and rename all names to match the shot order"""
 
     bl_idname = "schalotte.fix_storyboard_names"
     bl_label = "Fix Storyboard Names"
     bl_options = {"REGISTER", "UNDO"}
 
     sort_shots: BoolProperty(name="Sort StoryLiner Shots", default=True)
-    rename_shots: BoolProperty(name="Rename Storyboarder Shots", default=True)
+    rename_shots: BoolProperty(name="Rename Shots", default=True)
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -712,11 +713,23 @@ class SCHALOTTETOOL_OT_FixStoryboardNames(Operator):
         """
         # Sort shots
         if self.sort_shots:
-            schalotte.sort_storyliner_shots(context.scene)
+            if hasattr(context.scene, "WkStoryLiner_props"):
+                schalotte.sort_storyliner_shots(context.scene)
 
         # Rename shots
         if self.rename_shots:
-            schalotte.rename_storyliner_shots(context.scene)
+            if hasattr(context.scene, "WkStoryLiner_props"):
+                schalotte.rename_storyliner_shots(context.scene)
+            else:
+                # Rename markers
+                shot_nb = 0
+                for marker in sorted(
+                    context.scene.timeline_markers,
+                    key=lambda x: x.frame,
+                ):
+                    if marker.camera:
+                        shot_nb += 1
+                        marker.name = f"sh{shot_nb:03d}0"
 
         # Fix camera rig names
         schalotte.fix_cam_rig_names(context.scene)
@@ -738,22 +751,9 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
     @classmethod
     def description(cls, context: Context, properties: OperatorProperties) -> str:
         if properties.use_current_camera:
-            return "Add a new StoryLiner shot based on the current camera"
+            return "Add a new shot based on the current camera"
         else:
-            return "Add a new StoryLiner shot without camera transforms"
-
-    @classmethod
-    def poll(cls, context) -> bool:
-        """
-        Only if StoryLiner is active.
-
-        Args:
-            context (Context)
-
-        Returns:
-            bool: Scene has StoryLiner properties
-        """
-        return hasattr(context.scene, "WkStoryLiner_props")
+            return "Add a new shot without camera transforms"
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
@@ -765,42 +765,100 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
         Returns:
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
+        scene = context.scene
+
         # Append a new camera rig
-        new_col, new_rig, new_cam = schalotte.ensure_camera_rig(context.scene, True)
+        new_col, new_rig, new_cam = schalotte.ensure_camera_rig(scene, True)
         if not new_rig or not new_cam:
             msg = "Failed to append camera rig."
             self.report({"ERROR"}, msg)
             log.error(msg)
             return {"CANCELLED"}
 
-        # Find the current camera's rig
-        props = context.scene.WkStoryLiner_props  # type: ignore
         current_rig = None
-        if self.use_current_camera:
-            try:
-                current_rig = props.getCurrentShot().camera.parent
-            except AttributeError:
-                log.error("Unable to not find the current shot's camera rig.")
 
-        # Create the StoryLiner shot
-        frame_start = 1
-        for shot in props.getShotsList():
-            if shot.end > frame_start:
-                frame_start = shot.end + 1
-        nb_shots = len(props.getShotsList())
-        shot_name = props.getShotPrefix((nb_shots + 1) * 10)
+        # StoryLiner
+        if hasattr(scene, "WkStoryLiner_props"):
+            props = scene.WkStoryLiner_props  # type: ignore
 
-        props.addShot(  # type: ignore
-            name=shot_name,
-            start=frame_start,
-            end=frame_start + 50,
-            camera=new_cam,
-            color=colorsys.hsv_to_rgb(random.random(), 0.9, 1.0) + (1.0,),
-        )
+            # Find the current camera's rig
+            if self.use_current_camera:
+                try:
+                    current_rig = props.getCurrentShot().camera.parent
+                except AttributeError:
+                    log.error("Unable to not find the current shot's camera rig.")
+
+            # Create the StoryLiner shot
+            frame_start = 1
+            for shot in props.getShotsList():
+                if shot.end > frame_start:
+                    frame_start = shot.end + 1
+            nb_shots = len(props.getShotsList())
+            sh_name = props.getShotPrefix((nb_shots + 1) * 10)
+
+            props.addShot(  # type: ignore
+                name=sh_name,
+                start=frame_start,
+                end=frame_start + 50,
+                camera=new_cam,
+                color=colorsys.hsv_to_rgb(random.random(), 0.9, 1.0) + (1.0,),
+            )
+            cam_name = f"cam_{props.sequence_name}_{sh_name}"
+
+        # Camera markers
+        else:
+            if self.use_current_camera:
+                try:
+                    current_rig = scene.camera.parent
+                except AttributeError:
+                    log.error("Unable to not find the current shot's camera rig.")
+
+            # Get last camera marker frame and shot name
+            marker_pattern = re.compile(r"sh(\d+)")
+
+            sh_name = None
+            frame_start = None
+            for marker in scene.timeline_markers:
+                if marker.camera:
+                    name_match = re.findall(marker_pattern, marker.name)
+                    if name_match:
+                        sh_name = name_match[0]
+                    frame_start = marker.frame
+
+            # Set frame start to 1 if not found
+            if frame_start is None:
+                frame_start = 1
+            # ... use current frame if after last shot, or offset last by 50
+            else:
+                if scene.frame_current > frame_start:
+                    frame_start = scene.frame_current
+                else:
+                    frame_start += 50
+
+            # Use first shot name or increase by one
+            if sh_name is None:
+                sh_name = "sh0010"
+            else:
+                sh_name = f"sh{int(sh_name) + 10:04d}"
+
+            # Create the camera marker
+            new_marker = scene.timeline_markers.new(
+                name=sh_name,
+                frame=frame_start,
+            )
+            new_marker.camera = new_cam
+
+            # Add sequence name for camera
+            cam_name = f"cam_"
+            sequence = session.Session.this().sequence
+            if sequence:
+                sq_name = sequence.get("name")
+                if sq_name:
+                    cam_name += f"{sq_name.lower()}_"
+            cam_name += sh_name
 
         # Rename the new camera
-        sq_name = props.sequence_name
-        schalotte.rename_cam_rig(new_cam, f"cam_{sq_name}_{shot_name}", new_col)
+        schalotte.rename_cam_rig(new_cam, cam_name, new_col)
 
         # Camera settings
         camera.CameraSettings.this().set_up_camera(new_cam.data)  # type: ignore

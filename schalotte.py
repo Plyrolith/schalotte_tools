@@ -812,11 +812,19 @@ def fix_cam_rig_names(scene: Scene | None = None):
 
     # ... or use timeline markers and rename
     else:
+        # Get sequence name
+        sq_part = ""
+        sequence = session.Session.this().sequence
+        if sequence:
+            sq_name = sequence.get("name")
+            if sq_name:
+                sq_part = f"{sq_name}_"
+
         i = 0
         for marker in scene.timeline_markers:
             if marker.camera:
                 i += 1
-                rename_cam_rig(marker.camera, f"cam_sh{i:03d}0")
+                rename_cam_rig(marker.camera, f"cam_{sq_part}{marker.name}")
 
 
 def rename_storyliner_shots(scene: Scene | None = None):

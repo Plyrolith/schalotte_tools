@@ -55,7 +55,10 @@ class SCHALOTTE_PT_storyboard(Panel):
 
     @classmethod
     def poll(cls, context) -> bool:
-        return hasattr(context.scene, "WkStoryLiner_props")
+        s = session.Session.this()
+        return hasattr(context.scene, "WkStoryLiner_props") or bool(
+            s.task and s.task.get("task_type_name", "").lower() == "storyboard"
+        )
 
     def draw(self, context: Context):
         draw.storyboard_ui(self, context)

@@ -49,10 +49,11 @@ def storyboard_ui(self: Panel, context: Context):
     )
 
     layout.row().separator()
-    layout.row().operator(
-        ops.SCHALOTTETOOL_OT_RemoveStoryLinerGaps.bl_idname,
-        icon="SEQ_STRIP_META",
-    )
+    if hasattr(context.scene, "WkStoryLiner_props"):
+        layout.row().operator(
+            ops.SCHALOTTETOOL_OT_RemoveStoryLinerGaps.bl_idname,
+            icon="SEQ_STRIP_META",
+        )
 
     layout.row().operator(
         ops.SCHALOTTETOOL_OT_FixStoryboardNames.bl_idname,
