@@ -289,21 +289,12 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
         # Find name, start and end frame of current shot marker
         shot_suffix = ""
         if self.range == "SHOT":
-            shot_start = scene.frame_start
-            shot_end = scene.frame_end
-            for marker in scene.timeline_markers:
-                if not marker.camera:
-                    continue
-
-                if marker.frame >= shot_start and marker.frame <= scene.frame_current:
-                    shot_start = marker.frame
-                    shot_suffix = f"_{marker.name}"
-                elif marker.frame < shot_end and marker.frame > scene.frame_current:
-                    shot_end = marker.frame
+            shot_name, shot_start, shot_end = schalotte.get_marker_shot_range(scene)
+            shot_suffix = f"_{shot_name}"
 
             # Set scene frame range to shot
             scene.frame_start = shot_start
-            scene.frame_end = shot_end - 1
+            scene.frame_end = shot_end
 
         # Render preview
         blend_path = Path(bpy.data.filepath)
@@ -1252,5 +1243,32 @@ class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
         if self.unpack:
             for sound_strip in utils.get_packed_sound_strips(scene):
                 sound_strip.sound.unpack(method="USE_ORIGINAL")
+
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_SetMarkerShotPreviewRange(Operator):
+    """Set preview range to the current camera marker shot"""
+
+    bl_idname = "schalotte.set_marker_shot_preview_range"
+    bl_label = "Set Marker Shot Preview Range"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Set preview range to current camera marker shot.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        scene = context.scene
+        _, start_frame, end_frame = schalotte.get_marker_shot_range(scene)
+        scene.use_preview_range = True
+        scene.frame_preview_start = start_frame
+        scene.frame_preview_end = end_frame
 
         return {"FINISHED"}

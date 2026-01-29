@@ -927,7 +927,43 @@ def get_external_sound_strips(
     return external_strips
 
 
-def set_stamp(scene: Scene):
+def get_marker_shot_range(
+    scene: Scene | None = None,
+    frame: int | None = None,
+) -> tuple[str, int, int]:
+    """
+    Sets the stamp to the current shot information, if available.
+
+    Args:
+        scene (Scene | None): Scene to use, defaults to context
+        frame (int | None): Sample shot at this position, use current frame if not given
+
+    Returns:
+        tuple[str, int, int]: Current shot name, start and end frame
+    """
+    if not scene:
+        scene = bpy.context.scene
+
+    if not frame:
+        frame = scene.frame_current
+
+    shot_start = scene.frame_start
+    shot_end = scene.frame_end
+    shot_name = ""
+    for marker in scene.timeline_markers:
+        if not marker.camera:
+            continue
+
+        if marker.frame >= shot_start and marker.frame <= frame:
+            shot_start = marker.frame
+            shot_name = marker.name
+        elif marker.frame < shot_end and marker.frame > frame:
+            shot_end = marker.frame
+
+    return (shot_name, shot_start, shot_end)
+
+
+def set_stamp(scene: Scene | None = None):
     """
     Sets the stamp to the current shot information, if available.
 
@@ -963,25 +999,13 @@ def set_stamp(scene: Scene):
             stamp += f"{sq_name.lower()}"
 
     # Find name, start and end frame of current shot marker
-    shot_start = scene.frame_start
-    shot_end = scene.frame_end
-    shot_name = ""
-    for marker in scene.timeline_markers:
-        if not marker.camera:
-            continue
-
-        if marker.frame >= shot_start and marker.frame <= scene.frame_current:
-            shot_start = marker.frame
-            shot_name = marker.name
-        elif marker.frame < shot_end and marker.frame > scene.frame_current:
-            shot_end = marker.frame
-
+    shot_name, shot_start, shot_end = get_marker_shot_range(scene)
     if stamp:
         stamp += "_"
     stamp += (
         f"{shot_name} [ "
         f"{scene.frame_current - shot_start:03d} / "
-        f"{shot_end - shot_start - 1:03d} ]"
+        f"{shot_end - shot_start:03d} ]"
     )
     task = session.Session.this().task
     if task:
@@ -996,6 +1020,8 @@ def set_stamp(scene: Scene):
             user_name = user.get("email")
         if user_name:
             stamp += f" - {user_name}"
+
+    log.debug(f"Setting stamp text to: {stamp}")
 
     # Stamp settings
     render = scene.render
