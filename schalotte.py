@@ -925,3 +925,97 @@ def get_external_sound_strips(
                 external_strips.append(strip)
 
     return external_strips
+
+
+def set_stamp(scene: Scene):
+    """
+    Sets the stamp to the current shot information, if available.
+
+    Args:
+        scene (Scene): Scene to use, defaults to context
+    """
+    if not scene:
+        scene = bpy.context.scene
+
+    stamp = ""
+
+    # Shot info
+    s = session.Session.this()
+    project = s.project
+    if project:
+        pr_name = project.get("name")
+        if pr_name:
+            stamp += pr_name
+
+    episode = s.episode
+    if episode:
+        ep_name = episode.get("name")
+        if ep_name:
+            if stamp:
+                stamp += " "
+            stamp += ep_name.lower()
+    sequence = s.sequence
+    if sequence:
+        sq_name = sequence.get("name")
+        if sq_name:
+            if stamp:
+                stamp += "_"
+            stamp += f"{sq_name.lower()}"
+
+    # Find name, start and end frame of current shot marker
+    shot_start = scene.frame_start
+    shot_end = scene.frame_end
+    shot_name = ""
+    for marker in scene.timeline_markers:
+        if not marker.camera:
+            continue
+
+        if marker.frame >= shot_start and marker.frame <= scene.frame_current:
+            shot_start = marker.frame
+            shot_name = marker.name
+        elif marker.frame < shot_end and marker.frame > scene.frame_current:
+            shot_end = marker.frame
+
+    if stamp:
+        stamp += "_"
+    stamp += (
+        f"{shot_name} [ "
+        f"{scene.frame_current - shot_start:03d} / "
+        f"{shot_end - shot_start - 1:03d} ]"
+    )
+    task = session.Session.this().task
+    if task:
+        task_type_name = task.get("task_type_name")
+        if task_type_name:
+            stamp += f" - {task_type_name}"
+
+    user = client.Client.this().user
+    if user:
+        user_name = user.get("full_name")
+        if not user_name:
+            user_name = user.get("email")
+        if user_name:
+            stamp += f" - {user_name}"
+
+    # Stamp settings
+    render = scene.render
+    render.metadata_input = "SCENE"
+    render.use_stamp_date = False
+    render.use_stamp_time = False
+    render.use_stamp_render_time = False
+    render.use_stamp_frame = False
+    render.use_stamp_frame_range = False
+    render.use_stamp_memory = False
+    render.use_stamp_hostname = False
+    render.use_stamp_camera = False
+    render.use_stamp_lens = True
+    render.use_stamp_scene = False
+    render.use_stamp_marker = False
+    render.use_stamp_filename = False
+    render.use_stamp_note = True
+    render.use_stamp = True
+    render.stamp_font_size = 24
+    render.stamp_foreground = (1.0, 1.0, 1.0, 1.0)
+    render.stamp_background = (0.0, 0.0, 0.0, 1.0)
+    render.use_stamp_labels = False
+    render.stamp_note_text = stamp

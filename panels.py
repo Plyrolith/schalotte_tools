@@ -112,7 +112,10 @@ class SCHALOTTE_PT_preview(Panel):
         return bool(
             bpy.data.filepath
             and s.task
-            and not s.task.get("task_type_name", "").lower() == "storyboard"
+            and not (
+                s.task.get("task_type_name", "").lower() == "storyboard"
+                and hasattr(context.scene, "WkStoryLiner_props")
+            )
         )
 
     def draw(self, context: Context):

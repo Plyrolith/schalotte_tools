@@ -78,8 +78,12 @@ def preview_ui(self: Panel, context: Context):
     """
     layout = self.layout
     layout.row().operator(
-        ops.SCHALOTTETOOL_OT_UploadPreview.bl_idname,
+        ops.SCHALOTTETOOL_OT_RenderPreview.bl_idname,
         icon="RENDER_ANIMATION",
+    )
+    layout.row().operator(
+        ops.SCHALOTTETOOL_OT_UploadPreview.bl_idname,
+        icon="EMPTY_SINGLE_ARROW",
     )
 
 

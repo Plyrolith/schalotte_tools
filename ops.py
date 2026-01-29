@@ -9,7 +9,6 @@ from pathlib import Path
 import pprint
 import random
 import re
-import tempfile
 
 import bpy
 from bpy_extras.io_utils import ImportHelper
@@ -206,31 +205,28 @@ class SCHALOTTETOOL_OT_CreateWorkFile(Operator):
 
 
 @catalog.bpy_register
-class SCHALOTTETOOL_OT_UploadPreview(Operator):
-    """Render a preview and upload it to selected task"""
+class SCHALOTTETOOL_OT_RenderPreview(Operator):
+    """Render or playblast a preview"""
 
-    bl_idname = "schalotte.upload_preview"
-    bl_label = "Upload Preview"
+    bl_idname = "schalotte.render_preview"
+    bl_label = "Render Preview"
     bl_options = {"REGISTER"}
 
-    def enum_task_status_ids(
-        self,
-        context: Context | None,
-    ) -> list[tuple[str, str, str]]:
-        """
-        Enumerate task status items.
-        """
-        task_statuses = client.Client.this().fetch_list(
-            "task-status",
-            {"is_feedback_request": True},
-        )
-        if not task_statuses:
-            return [("NONE", "None", "No task status selected")]
-
-        return [(ts["id"], ts["name"], ts["id"]) for ts in task_statuses]
-
-    task_status_id: EnumProperty(name="Task Status", items=enum_task_status_ids)
-    comment: StringProperty(name="Comment")
+    mode: EnumProperty(
+        items=(
+            ("PLAYBLAST", "Playblast", "OpenGL viewport playblast"),
+            ("RENDER", "Render", "Render using current settings"),
+        ),
+        name="Mode",
+    )
+    range: EnumProperty(
+        items=(
+            ("SCENE", "Scene", "Full scene"),
+            ("SHOT", "Shot", "Current shot based on camera markers"),
+        ),
+        name="Range",
+    )
+    use_playback: BoolProperty(name="Play After Rendering", default=True)
 
     @classmethod
     def poll(cls, context) -> bool:
@@ -260,9 +256,196 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         """
         return context.window_manager.invoke_props_dialog(self)
 
+    def draw(self, context: Context):
+        """
+        Draw operator properties.
+
+        Args:
+            context (Context)
+        """
+        layout = self.layout
+        col = layout.column()
+        col.use_property_split = True
+        col.row().prop(self, "mode", expand=True)
+        col.row().prop(self, "range", expand=True)
+        col.row().prop(self, "use_playback", expand=True)
+
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
-        Create a new comment, render the shot and upload the video to it.
+        Render the shot.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        scene = context.scene
+
+        # Backup
+        frame_start = scene.frame_start
+        frame_end = scene.frame_end
+
+        # Find name, start and end frame of current shot marker
+        shot_suffix = ""
+        if self.range == "SHOT":
+            shot_start = scene.frame_start
+            shot_end = scene.frame_end
+            for marker in scene.timeline_markers:
+                if not marker.camera:
+                    continue
+
+                if marker.frame >= shot_start and marker.frame <= scene.frame_current:
+                    shot_start = marker.frame
+                    shot_suffix = f"_{marker.name}"
+                elif marker.frame < shot_end and marker.frame > scene.frame_current:
+                    shot_end = marker.frame
+
+            # Set scene frame range to shot
+            scene.frame_start = shot_start
+            scene.frame_end = shot_end - 1
+
+        # Render preview
+        blend_path = Path(bpy.data.filepath)
+        file_name = blend_path.stem + shot_suffix
+        previews_path = blend_path.parent / "previews"
+        file_path = previews_path / f"{file_name}.mp4"
+        if file_path.exists():
+            for i in range(1, 999):
+                file_path = previews_path / f"{file_name}_{i:03d}.mp4"
+                if not file_path.exists():
+                    break
+            else:
+                log.error("Could not find available video file path.")
+                return {"CANCELLED"}
+
+        # Render
+        log.info(f"Rendering video to {file_path}")
+        utils.render_settings(scene)
+        if self.mode == "RENDER":
+            # Add stamp handler
+            if not schalotte.set_stamp in bpy.app.handlers.render_pre:
+                log.debug("Adding stamp handler")
+                bpy.app.handlers.render_pre.append(schalotte.set_stamp)
+
+            # Render
+            utils.render_scene(file_path, scene)
+
+            # Remove stamp handler
+            if schalotte.set_stamp in bpy.app.handlers.render_pre:
+                log.debug("Removing stamp handler")
+                bpy.app.handlers.render_pre.remove(schalotte.set_stamp)
+        else:
+            # Backup
+            use_preview_range = scene.use_preview_range
+            use_simplify = scene.render.use_simplify
+
+            # Set
+            scene.render.use_simplify = False
+            scene.use_preview_range = False
+
+            # Playblast
+            utils.playblast_scene(file_path, scene)
+
+            # Restore
+            scene.use_preview_range = use_preview_range
+            scene.render.use_simplify = use_simplify
+
+        # Restore scene settings
+        if self.range == "SHOT":
+            scene.frame_start = frame_start
+            scene.frame_end = frame_end
+
+        # Open rendered video
+        if self.use_playback:
+            bpy.ops.wm.path_open(filepath=file_path.as_posix())
+
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_UploadPreview(Operator):
+    """Render a preview and upload it to selected task"""
+
+    bl_idname = "schalotte.upload_preview"
+    bl_label = "Upload Preview"
+    bl_options = {"REGISTER"}
+
+    def enum_task_status_ids(
+        self,
+        context: Context | None,
+    ) -> list[tuple[str, str, str]]:
+        """
+        Enumerate task status items.
+        """
+        task_statuses = client.Client.this().fetch_list(
+            "task-status",
+            {"is_feedback_request": True},
+        )
+        if not task_statuses:
+            return [("NONE", "None", "No task status selected")]
+
+        return [(ts["id"], ts["name"], ts["id"]) for ts in task_statuses]
+
+    def enum_video_path(
+        self,
+        context: Context | None,
+    ) -> list[tuple[str, str, str]]:
+        """
+        Enumerate available preview files.
+        """
+        preview_files = []
+
+        preview_path = Path(bpy.data.filepath).parent / "previews"
+        if preview_path.exists():
+            files = list(preview_path.glob("*.mp4"))
+            # Sort by modification date
+            for file in sorted(files, key=lambda f: f.stat().st_mtime, reverse=True):
+                preview_files.append((file.as_posix(), file.stem, file.name))
+
+        return preview_files
+
+    video_path: EnumProperty(name="Video File", items=enum_video_path)
+    task_status_id: EnumProperty(name="Task Status", items=enum_task_status_ids)
+    comment: StringProperty(name="Comment")
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Allow only file is saved, the client is logged in and a task is selected.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: File is saved, client logged in and task selected
+        """
+        return client.Client.this().is_logged_in and bool(
+            bpy.data.filepath and session.Session.this().task
+        )
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Invoke the properties dialog.
+
+        Args:
+            context (Context)
+            event (Event)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if not self.enum_video_path(context):
+            msg = "No video files rendered."
+            log.error(msg)
+            self.report({"WARNING"}, msg)
+            return {"CANCELLED"}
+
+        return context.window_manager.invoke_props_dialog(self)
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Create a new comment and upload selected video to it.
 
         Args:
             context (Context)
@@ -282,15 +465,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         data = {"task_status_id": self.task_status_id, "comment": self.comment}
         comment = c.post(f"actions/tasks/{task_id}/comment", data)
 
-        # Render preview
-        temp_dir = Path(tempfile.mkdtemp(prefix=f"{catalog.get_package_base()}_"))
-        log.info(f"Creating temp dir at {temp_dir}")
-        stem = Path(bpy.data.filepath).stem
-        if not stem:
-            stem = "untitled"
-        file_path = temp_dir / f"{stem}.mp4"
-        log.info(f"Rendering video to {file_path}")
-        utils.render_scene(file_path, context.scene, use_stamp=True)
+        #
 
         # Upload preview
         log.info("Creating a new preview.")
@@ -301,13 +476,8 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         log.info(f"Uploading video to preview {preview['id']}")
         c.upload(
             f"pictures/preview-files/{preview['id']}?normalize=false",
-            file_path.as_posix(),
+            self.video_path,
         )
-
-        # Delete
-        log.info("Cleaning up temp dir.")
-        file_path.unlink()
-        temp_dir.rmdir()
 
         return {"FINISHED"}
 
