@@ -21,7 +21,8 @@ def hide_inactive_cameras(_):
     Set camera visibilities.
     """
     # Don't do anything during playback to not affect performance
-    if bpy.context.screen.is_animation_playing:
+    screen = bpy.context.screen
+    if not hasattr(screen, "is_animation_playing") or not screen.is_animation_playing:
         return
 
     c = CameraSettings.this()
