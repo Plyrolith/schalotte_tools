@@ -10,6 +10,7 @@ if TYPE_CHECKING:
         ID,
         Object,
         Operator,
+        PoseBone,
         Scene,
         SoundStrip,
         SpaceView3D,
@@ -64,6 +65,89 @@ def are_same_paths(*paths: str | Path, resolve: bool = True) -> bool:
             return False
 
     return True
+
+
+def insert_pbone_keyframe(
+    pbone: PoseBone,
+    frame: int | None = None,
+    use_location: bool = True,
+    use_rotation: bool = True,
+    use_scale: bool = True,
+    use_custom_properties: bool = True,
+):
+    """
+    Set a keyframe on a pose bone for transform channels and custom properties.
+
+    Args:
+        pbone (PoseBone): The pose bone to set keyframes for
+        frame (int | None): The frame to set keyframes on, None for current frame
+        use_location (bool): Whether to set keyframes on location channels
+        use_rotation (bool): Whether to set keyframes on rotation mode and channels
+        use_scale (bool): Whether to set keyframes on scale channels
+        use_custom_properties (bool): Whether to set keyframes on custom properties
+    """
+    obj = pbone.id_data
+    property_names = []
+
+    # Frame
+    if frame is None:
+        frame = bpy.context.scene.frame_current
+
+    # Location
+    if use_location:
+        property_names.append(".location")
+
+    # Rotation
+    if use_rotation:
+        property_names.append(".rotation_mode")
+
+        # Use currently used rotation property
+        rotation_mode = pbone.rotation_mode
+        if rotation_mode == "QUATERNION":
+            property_names.append(".rotation_quaternion")
+        elif rotation_mode == "AXIS_ANGLE":
+            property_names.append(".rotation_axis_angle")
+        else:
+            property_names.append(".rotation_euler")
+
+    # Scale
+    if use_scale:
+        property_names.append(".scale")
+
+    # Custom properties
+    if use_custom_properties:
+        for prop in get_drivable_custom_properties(pbone).keys():  # type: ignore
+            log.debug(f"Adding: {pbone.name}: {prop}")
+            property_names.append(f'["{prop}"]')
+
+    # Set keyframes
+    for prop in property_names:
+        # log.debug(f"Key: {obj.name} - {pbone.name}{prop}")
+        obj.keyframe_insert(
+            f'pose.bones["{pbone.name}"]{prop}',
+            index=-1,
+            frame=frame,
+            group=pbone.name,
+        )
+
+
+def get_drivable_custom_properties(
+    datablock: ID,
+) -> dict[str, int | float | tuple[int | float]]:
+    """
+    Get all integer and float custom property names for a datablock.
+
+    Args:
+        datablock (ID): Datablock to get the property names from
+
+    Returns:
+        dict[str, int | float | tuple[int | float]]: Dictionary of property names and values
+    """
+    return {
+        prop: value
+        for prop, value in datablock.items()
+        if type(value).__name__ in {"bool", "float", "int", "IDPropertyArray"}
+    }
 
 
 def render_settings(scene: Scene | None = None):

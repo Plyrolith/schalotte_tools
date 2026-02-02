@@ -40,6 +40,10 @@ def storyboard_ui(self: Panel, context: Context):
     """
     layout = self.layout
     layout.row().operator(ops.SCHALOTTETOOL_OT_SetupStoryboard.bl_idname, icon="PRESET")
+    layout.row().operator(
+        ops.SCHALOTTETOOL_OT_KeyframeAllRigs.bl_idname,
+        icon="KEYTYPE_KEYFRAME_VEC",
+    )
 
     layout.row().separator()
     layout.row().operator(ops.SCHALOTTETOOL_OT_AddSoundStrips.bl_idname, icon="SOUND")

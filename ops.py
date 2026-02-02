@@ -1382,3 +1382,94 @@ class SCHALOTTETOOL_OT_SetMarkerShotPreviewRange(Operator):
         scene.frame_preview_end = end_frame
 
         return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_KeyframeAllRigs(Operator):
+    """Set keyframes for all rigs in the current scene"""
+
+    bl_idname = "schalotte.keyframe_all_rigs"
+    bl_label = "Keyframe All Rigs"
+    bl_options = {"REGISTER", "UNDO"}
+
+    armatures: EnumProperty(
+        items=(
+            ("ALL", "All", "All rigs found in the current scene"),
+            ("SELECTED", "Selected", "Only selected rigs"),
+        ),
+        name="Rigs",
+        description="Which rigs to set all keys for",
+    )
+    frame: EnumProperty(
+        items=(
+            ("ZERO", "Zero", "Set the keyframe on frame 0"),
+            ("CURRENT", "Current", "Set the keyframe on the current frame"),
+        ),
+        name="Frame",
+        description="On which frame the new keyframes are set",
+    )
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Invoke the properties dialog.
+
+        Args:
+            context (Context)
+            event (Event)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context: Context):
+        """
+        Draw operator properties.
+
+        Args:
+            context (Context)
+        """
+        layout = self.layout
+        col = layout.column()
+        col.use_property_split = True
+        col.row().prop(self, "armatures", expand=True)
+        col.row().prop(self, "frame", expand=True)
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Set keyframes on all rigs.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        # Collect armatures
+        if self.armatures == "ALL":
+            objs = context.scene.collection.all_objects
+        else:
+            objs = context.selected_objects
+
+        # Select frame
+        if self.frame == "ZERO":
+            frame = 0
+        else:
+            frame = context.scene.frame_current
+
+        # Set keys
+        for obj in objs:
+
+            # Skip non-armatures or raw linked
+            if obj.type != "ARMATURE" or obj.library:
+                continue
+
+            # Only controllers
+            for pbone in obj.pose.bones:
+                if pbone.name.startswith(("DEF", "MCH", "ORG", "VIS")):
+                    continue
+
+                # Set keyframes
+                utils.insert_pbone_keyframe(pbone, frame)  # type: ignore
+
+        return {"FINISHED"}
