@@ -960,10 +960,10 @@ def get_marker_shot_range(
         elif marker.frame < shot_end and marker.frame > frame:
             shot_end = marker.frame
 
-    return (shot_name, shot_start, shot_end)
+    return (shot_name, shot_start, shot_end - 1)
 
 
-def set_stamp(scene: Scene | None = None):
+def set_stamp(scene: Scene | None = None, _=None):
     """
     Sets the stamp to the current shot information, if available.
 

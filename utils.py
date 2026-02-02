@@ -14,6 +14,7 @@ if TYPE_CHECKING:
         SoundStrip,
         SpaceView3D,
         UILayout,
+        Window,
     )
 
 import bpy
@@ -101,13 +102,18 @@ def render_settings(scene: Scene | None = None):
     ffmpeg.audio_volume = 1.0
 
 
-def render_scene(file_path: Path | str, scene: Scene | None = None):
+def render_scene(
+    file_path: Path | str,
+    scene: Scene | None = None,
+    modal: bool = False,
+):
     """
     Render given or current scene.
 
     Args:
         file_path (Path | str): Destination file path
         scene (Scene | None): Scene to render, defaults to the current scene
+        modal (bool): Whether to render in modal mode
     """
     if not scene:
         scene = bpy.context.scene
@@ -122,36 +128,39 @@ def render_scene(file_path: Path | str, scene: Scene | None = None):
     # Render
     file_path.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.render.render(
+        "INVOKE_DEFAULT" if modal else "EXEC_DEFAULT",
         animation=True,
         use_viewport=False,
         scene=scene.name,
     )
 
 
-def playblast_scene(file_path: Path | str, scene: Scene | None = None):
+def playblast_scene(
+    file_path: Path | str,
+    scene: Scene | None = None,
+    modal: bool = False,
+) -> Window | None:
     """
     Playblast given or current scene.
 
     Args:
         file_path (Path | str): Destination file path
         scene (Scene | None): Scene to render, defaults to the current scene
+        modal (bool): Whether to render in modal mode
+
+    Returns:
+        Window | None: New Window if run modally
     """
-    if TYPE_CHECKING:
-        space: SpaceView3D
 
-    if not scene:
-        scene = bpy.context.scene
+    def set_up_window(window: Window):
+        """
+        Set up the new window display for playblasting.
 
-    file_path = Path(file_path)
-
-    # Render settings
-    render = scene.render
-    render.filepath = file_path.as_posix()
-    render.use_file_extension = True
-
-    # Render
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-    with temp_window(bpy.context) as window:
+        Args:
+            window (Window): Window to set up
+        """
+        if TYPE_CHECKING:
+            space: SpaceView3D
         area = window.screen.areas[0]
         area.type = "VIEW_3D"
         for space in area.spaces:  # type: ignore
@@ -160,7 +169,31 @@ def playblast_scene(file_path: Path | str, scene: Scene | None = None):
                 space.shading.type = "SOLID"
                 space.overlay.show_overlays = False
 
-        bpy.ops.render.opengl(animation=True)
+    context = bpy.context
+    if not scene:
+        scene = context.scene
+
+    file_path = Path(file_path)
+
+    # Render settings
+    render = scene.render
+    render.filepath = file_path.as_posix()
+    render.use_file_extension = True
+
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Render in modal
+    if modal:
+        window = create_new_window(context)
+        set_up_window(window)
+        bpy.ops.render.opengl("INVOKE_DEFAULT", animation=True)
+        return window
+
+    # Or directly
+    else:
+        with temp_window(context) as window:
+            set_up_window(window)
+            bpy.ops.render.opengl("EXEC_DEFAULT", animation=True)
 
 
 def append_collection(file_path: Path | str, name: str) -> Collection | None:
@@ -500,8 +533,7 @@ def get_packed_sound_strips(scene: Scene | None = None) -> list[SoundStrip]:
     return packed_strips
 
 
-@contextlib.contextmanager
-def temp_window(context: Context | None = None):
+def create_new_window(context: Context | None = None) -> Window:
     """
     Create temporary-window context.
 
@@ -513,8 +545,37 @@ def temp_window(context: Context | None = None):
 
     current_windows = set(context.window_manager.windows)
     bpy.ops.wm.window_new()
-    window = list(set(context.window_manager.windows) - current_windows)[0]
+    return list(set(context.window_manager.windows) - current_windows)[0]
+
+
+def close_window(window: Window, context: Context | None = None):
+    """
+    Close given window.
+
+    Args:
+        window (Window): Window to be closed
+        context (Context |None): Blender context
+    """
+    if not context:
+        context = bpy.context
+
+    with context.temp_override(window=window):  # type: ignore
+        bpy.ops.wm.window_close()
+
+
+@contextlib.contextmanager
+def temp_window(context: Context | None = None):
+    """
+    Create temporary-window context.
+
+    Args:
+        context (Context |None): Blender context
+    """
+    if not context:
+        context = bpy.context
+
+    window = create_new_window(context)
     try:
         yield window
     finally:
-        bpy.ops.wm.window_close()
+        close_window(window, context)
