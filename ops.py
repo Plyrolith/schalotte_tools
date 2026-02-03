@@ -25,7 +25,6 @@ from bpy.types import (
     OperatorProperties,
     Scene,
     Timer,
-    Window,
 )
 from bpy_extras.io_utils import ImportHelper
 
@@ -222,8 +221,8 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
 
     mode: EnumProperty(
         items=(
-            ("PLAYBLAST", "Playblast", "OpenGL viewport playblast"),
-            ("RENDER", "Render", "Render using current settings"),
+            ("PLAYBLAST", "Playblast", "OpenGL workbench playblast"),
+            ("RENDER", "Render", "Render using scene settings"),
         ),
         name="Mode",
     )
@@ -234,33 +233,29 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
         ),
         name="Range",
     )
+    quality: EnumProperty(
+        items=(
+            ("LOW", "Low", "Low quality for fast passes"),
+            ("MEDIUM", "Medium", "Medium sampling/AA quality"),
+            ("HIGH", "High", "High quality sampling/AA (slow)"),
+            ("CUSTOM", "From Scene", "Use settings from the current scene"),
+        ),
+        name="Quality",
+    )
     use_playback: BoolProperty(name="Play After Rendering", default=True)
+    use_stamp: BoolProperty(name="Use Burn-in Stamp", default=True)
 
+    _is_modal: bool = False
     _file_path: Path
-    _frame_current: int
-    _frame_end: int
-    _frame_start: int
-    _last_frame: int | None = None
     _rendering: bool = False
     _render_display_type: Literal["NONE", "SCREEN", "AREA", "WINDOW"]
+    _scene_tracker: utils.PropTracker
     _timer: Timer | None = None
-    _use_preview_range: bool
-    _use_simplify: bool
-    _window: Window | None = None
 
     def _render_stop_handler(self, scene: Scene, _=None):
         """Mark if rendering has stopped"""
         log.debug("Render stop detected.")
         self._rendering = False
-
-    def _opengl_frame_handler(self, scene: Scene, _=None):
-        """Track OpenGL render progress"""
-        if self._last_frame is not None and self._last_frame > scene.frame_current:
-            log.debug("OpenGL render stop detected.")
-            self._rendering = False
-            return
-
-        self._last_frame = scene.frame_current
 
     @classmethod
     def poll(cls, context) -> bool:
@@ -288,6 +283,7 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
         Returns:
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
+        self._is_modal = True
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context: Context):
@@ -302,7 +298,9 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
         col.use_property_split = True
         col.row().prop(self, "mode", expand=True)
         col.row().prop(self, "range", expand=True)
-        col.row().prop(self, "use_playback", expand=True)
+        col.row().prop(self, "quality")
+        col.row().prop(self, "use_stamp")
+        col.row().prop(self, "use_playback")
 
     def modal(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """Handle modal events"""
@@ -315,7 +313,7 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
 
         # Pass escape to the render operator
         if event.type == "ESC":
-            log.debug("Escape pressed")
+            log.debug("Escape pressed.")
             return {"PASS_THROUGH"}
 
         return {"RUNNING_MODAL"}
@@ -333,10 +331,8 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
         scene = context.scene
 
         # Backup
-        self._frame_current = scene.frame_current
-        self._frame_start = scene.frame_start
-        self._frame_end = scene.frame_end
         self._render_display_type = context.preferences.view.render_display_type
+        self._scene_tracker = utils.PropTracker(scene)  # type: ignore
 
         # Find name, start and end frame of current shot marker
         shot_suffix = ""
@@ -345,8 +341,7 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
             shot_suffix = f"_{shot_name}"
 
             # Set scene frame range to shot
-            scene.frame_start = shot_start
-            scene.frame_end = shot_end
+            self._scene_tracker.set(frame_start=shot_start, frame_end=shot_end)
 
         # Render preview
         blend_path = Path(bpy.data.filepath)
@@ -362,107 +357,112 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
                 log.error("Could not find available video file path.")
                 return {"CANCELLED"}
 
-        # Store current persistent window for timer
-        window = context.window
+        # Set UI
+        context.preferences.view.render_display_type = "NONE"
 
-        # Render
+        # Add handlers
+        if (
+            self.use_stamp
+            and schalotte.set_stamp not in bpy.app.handlers.frame_change_post
+        ):
+            log.debug("Adding stamp handler.")
+            bpy.app.handlers.frame_change_post.append(schalotte.set_stamp)
+        if self._render_stop_handler not in bpy.app.handlers.render_cancel:
+            log.debug("Adding render cancel handler.")
+            bpy.app.handlers.render_cancel.append(self._render_stop_handler)
+        if self._render_stop_handler not in bpy.app.handlers.render_complete:
+            log.debug("Adding render complete handler.")
+            bpy.app.handlers.render_complete.append(self._render_stop_handler)
+
+        # Prepare rendering
         log.info(f"Rendering video to {file_path}")
         self._file_path = file_path
         self._rendering = True
-        utils.render_settings(scene)
-        if self.mode == "RENDER":
-            # Add handlers
-            if schalotte.set_stamp not in bpy.app.handlers.frame_change_post:
-                log.debug("Adding stamp handler")
-                bpy.app.handlers.frame_change_post.append(schalotte.set_stamp)
-            if self._render_stop_handler not in bpy.app.handlers.render_cancel:
-                log.debug("Adding render cancel handler")
-                bpy.app.handlers.render_cancel.append(self._render_stop_handler)
-            if self._render_stop_handler not in bpy.app.handlers.render_complete:
-                log.debug("Adding render complete handler")
-                bpy.app.handlers.render_complete.append(self._render_stop_handler)
+        utils.apply_render_settings(scene, self._scene_tracker)
+        self._scene_tracker.set(
+            render__filepath=file_path.as_posix(),
+            render__use_file_extension=True,
+        )
 
-            # Render
-            context.preferences.view.render_display_type = "AREA"
+        # Set workbench
+        if self.mode == "PLAYBLAST":
+            self._scene_tracker.set(render__engine="BLENDER_WORKBENCH")
 
-            # Stamp still crashes, so non-modal for now
-            utils.render_scene(file_path, scene, modal=False)
+        # Set quality
+        match scene.render.engine:
+            case "BLENDER_EEVEE":
+                match self.quality:
+                    case "LOW":
+                        self._scene_tracker.set(eevee__taa_samples=2)
+                    case "MEDIUM":
+                        self._scene_tracker.set(eevee__taa_samples=6)
+                    case "HIGH":
+                        self._scene_tracker.set(eevee__taa_samples=12)
+
+            case "BLENDER_WORKBENCH":
+                match self.quality:
+                    case "LOW":
+                        self._scene_tracker.set(display__render_aa="OFF")
+                    case "MEDIUM":
+                        self._scene_tracker.set(display__render_aa="FXAA")
+                    case "HIGH":
+                        self._scene_tracker.set(display__render_aa="5")
+
+            case "CYCLES":
+                match self.quality:
+                    case "LOW":
+                        self._scene_tracker.set(cycles__samples=2)
+                    case "MEDIUM":
+                        self._scene_tracker.set(cycles__samples=12)
+                    case "HIGH":
+                        self._scene_tracker.set(cycles__samples=24)
+
+        # Render
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        bpy.ops.render.render(
+            "INVOKE_DEFAULT" if self._is_modal else "EXEC_DEFAULT",
+            animation=True,
+            use_viewport=False,
+            scene=scene.name,
+        )
+        if not self._is_modal:
             self.finish(context)
             return {"FINISHED"}
 
-        else:
-            # Backup
-            self._use_preview_range = scene.use_preview_range
-            self._use_simplify = scene.render.use_simplify
-
-            # Set
-            scene.render.use_simplify = False
-            scene.use_preview_range = False
-
-            if self._opengl_frame_handler not in bpy.app.handlers.frame_change_post:
-                log.debug("Adding OpenGL frame change handler")
-                bpy.app.handlers.frame_change_post.append(self._opengl_frame_handler)
-
-            # Playblast
-            context.preferences.view.render_display_type = "NONE"
-            scene.frame_current = scene.frame_start
-            self._window = utils.playblast_scene(file_path, scene, modal=True)
-
         # Start modal
         wm = context.window_manager
-        self._timer = wm.event_timer_add(0.1, window=window)
+        self._timer = wm.event_timer_add(0.1, window=context.window)
         wm.modal_handler_add(self)
         self._rendering = True
 
         return {"RUNNING_MODAL"}
 
     def finish(self, context: Context):
-        scene = context.scene
-
-        context.preferences.view.render_display_type = self._render_display_type
-
         # Remove timer
         if self._timer:
-            log.debug("Removing timer")
+            log.debug("Removing timer.")
             wm = context.window_manager
             wm.event_timer_remove(self._timer)
 
         # Remove handlers
         if schalotte.set_stamp in bpy.app.handlers.frame_change_post:
-            log.debug("Removing stamp handler")
+            log.debug("Removing stamp handler.")
             bpy.app.handlers.frame_change_post.remove(schalotte.set_stamp)
         if self._render_stop_handler in bpy.app.handlers.render_cancel:
-            log.debug("Removing render cancel handler")
+            log.debug("Removing render cancel handler.")
             bpy.app.handlers.render_cancel.remove(self._render_stop_handler)
         if self._render_stop_handler in bpy.app.handlers.render_complete:
-            log.debug("Removing render complete handler")
+            log.debug("Removing render complete handler.")
             bpy.app.handlers.render_complete.remove(self._render_stop_handler)
-        if self._opengl_frame_handler in bpy.app.handlers.frame_change_post:
-            log.debug("Removing OpenGL frame change handler")
-            bpy.app.handlers.frame_change_post.remove(self._opengl_frame_handler)
 
-        # Revert playblast setup
-        if self.mode == "PLAYBLAST":
-            log.debug("Reverting playblast settings")
-            scene.use_preview_range = self._use_preview_range
-            scene.render.use_simplify = self._use_simplify
-
-        # Restore scene settings
-        if self.range == "SHOT":
-            log.debug("Restoring scene range")
-            scene.frame_start = self._frame_start
-            scene.frame_end = self._frame_end
-            scene.frame_current = self._frame_current
+        # Restore props
+        context.preferences.view.render_display_type = self._render_display_type
+        self._scene_tracker.revert()
 
         # Open rendered video
         if self.use_playback:
             log.debug("Starting playback")
             bpy.ops.wm.path_open(filepath=self._file_path.as_posix())
-
-        # Close window
-        if self._window:
-            log.debug("Closing window")
-            utils.close_window(self._window, context)
 
 
 @catalog.bpy_register
@@ -796,7 +796,6 @@ class SCHALOTTETOOL_OT_FetchCasting(Operator):
 
 @catalog.bpy_register
 class SCHALOTTETOOL_OT_ImportAsset(Operator):
-
     bl_idname = "schalotte.import_asset"
     bl_label = "Import Asset"
     bl_options = {"REGISTER", "UNDO"}
@@ -1015,7 +1014,6 @@ class SCHALOTTETOOL_OT_FixStoryboardNames(Operator):
 
 @catalog.bpy_register
 class SCHALOTTETOOL_OT_AddShot(Operator):
-
     bl_idname = "schalotte.add_shot"
     bl_label = "Add Shot"
     bl_options = {"REGISTER", "UNDO"}
@@ -1462,7 +1460,6 @@ class SCHALOTTETOOL_OT_KeyframeAllRigs(Operator):
 
         # Set keys
         for obj in objs:
-
             # Skip non-armatures or raw linked
             if obj.type != "ARMATURE" or obj.library:
                 continue

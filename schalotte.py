@@ -918,7 +918,6 @@ def get_external_sound_strips(
 
     external_strips = []
     for strip in scene.sequence_editor_create().strips_all:  # type: ignore
-
         # Check if the strip is a sound strip with a file path
         if strip.type == "SOUND" and strip.sound and strip.sound.filepath:
             sound_path = Path(bpy.path.abspath(strip.sound.filepath)).resolve()
@@ -960,10 +959,10 @@ def get_marker_shot_range(
         if marker.frame >= shot_start and marker.frame <= frame:
             shot_start = marker.frame
             shot_name = marker.name
-        elif marker.frame < shot_end and marker.frame > frame:
-            shot_end = marker.frame
+        elif marker.frame - 1 < shot_end and marker.frame >= frame:
+            shot_end = marker.frame - 1
 
-    return (shot_name, shot_start, shot_end - 1)
+    return (shot_name, shot_start, shot_end)
 
 
 def set_stamp(scene: Scene | None = None, _=None):
