@@ -1,16 +1,17 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Iterator
+
     from bpy.types import Camera, Context, Object
 
 import bpy
 from bpy.props import BoolProperty, EnumProperty
-from bpy.types import Scene, PropertyGroup
+from bpy.types import PropertyGroup, Scene
 
 from . import catalog, logger
-
 
 log = logger.get_logger(__name__)
 
@@ -144,7 +145,7 @@ class CameraSettings(PropertyGroup):
                     context.view_layer.objects.active = context.selected_objects[0]
                     bpy.ops.object.mode_set(mode="POSE")
                 else:
-                    log.debug(f"No other object found, staying in object mode.")
+                    log.debug("No other object found, staying in object mode.")
 
             cam.hide_viewport = self.hide_inactive_cameras  # type: ignore
             if cam.parent:  # type: ignore

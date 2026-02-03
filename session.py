@@ -1,17 +1,19 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Literal
+
     from bpy.types import Context
 
-from pathlib import Path
-import bpy
 import re
+from pathlib import Path
+
+import bpy
 from bpy.props import EnumProperty, StringProperty
 
 from . import catalog, client, logger, schalotte, utils
-
 
 log = logger.get_logger(__name__)
 
@@ -190,7 +192,7 @@ class Session(catalog.WindowManagerModule):
 
         task_path = schalotte.generate_shot_blend_path(self.task_id)
         if not task_path:
-            log.debug(f"Task path cannot be generated.")
+            log.debug("Task path cannot be generated.")
             self.work_file_status = "INVALID"
             return
         self.work_file_path = task_path.as_posix()
@@ -198,15 +200,15 @@ class Session(catalog.WindowManagerModule):
         if self.current_file_path and utils.are_same_paths(
             self.current_file_path, task_path
         ):
-            log.debug(f"Current file matches task path.")
+            log.debug("Current file matches task path.")
             self.work_file_status = "ACTIVE"
 
         elif task_path.exists():
-            log.debug(f"Work file exists but is not loaded.")
+            log.debug("Work file exists but is not loaded.")
             self.work_file_status = "EXISTS"
 
         else:
-            log.debug(f"Work file has not been created yet.")
+            log.debug("Work file has not been created yet.")
             self.work_file_status = "MISSING"
 
     project_id: EnumProperty(
@@ -326,7 +328,7 @@ class Session(catalog.WindowManagerModule):
             log.debug(f"Detected shot: {path_sh}")
         else:
             path_sh = None
-            log.debug(f"Detected no shot.")
+            log.debug("Detected no shot.")
 
         # Get task from convoluted parent folder
         path_task = re.sub(r"[^a-z]", "", file_path.parents[3].name.lower())

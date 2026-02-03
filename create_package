@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 
 import json
-from pathlib import Path
 import subprocess
 import sys
-import tomllib
 import zipfile
+from pathlib import Path
+
+import tomllib
 
 
 def create_package():

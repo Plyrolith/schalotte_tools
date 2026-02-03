@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -14,10 +15,12 @@ if TYPE_CHECKING:
     )
 
 
-from pathlib import Path
-import bpy
 import colorsys
 import random
+from pathlib import Path
+
+import bpy
+
 from . import client, logger, preferences, session, utils
 
 log = logger.get_logger(__name__)

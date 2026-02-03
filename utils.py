@@ -1,13 +1,15 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Iterable, Literal
+
     from bpy.types import (
+        ID,
         Bone,
         Collection,
         Context,
-        ID,
         Object,
         Operator,
         PoseBone,
@@ -18,13 +20,13 @@ if TYPE_CHECKING:
         Window,
     )
 
-import bpy
 import contextlib
-from pathlib import Path
 import shutil
+from pathlib import Path
+
+import bpy
 
 from . import logger
-
 
 log = logger.get_logger(__name__)
 

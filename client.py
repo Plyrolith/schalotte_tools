@@ -1,23 +1,24 @@
 from __future__ import annotations
-from typing import Iterable, TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Iterable
 
 if TYPE_CHECKING:
-    from bpy.types import Context
     from typing import Any
+
+    from bpy.types import Context
 
 import datetime
 import functools
 import json
 import pprint
-import requests  # type: ignore
 import shutil
 import urllib
 
 import addon_utils
+import requests  # type: ignore
 from bpy.props import BoolProperty, StringProperty
 
 from . import catalog, exceptions, logger
-
 
 log = logger.get_logger(__name__)
 
@@ -488,7 +489,7 @@ class Client(catalog.PreferencesModule):
             self.post("auth/login", {"email": "", "password": ""})
             return True
         except Exception as exception:
-            return type(exception) == exceptions.ParameterException
+            return type(exception) is exceptions.ParameterException
 
     def import_data(self, path: str, data: dict) -> Any:
         """

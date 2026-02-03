@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 from typing import Literal
 
-
 PACKAGE: str = __package__  # type: ignore
 
 
@@ -143,7 +142,7 @@ def set_console_filter(
     if filter_string:
         log.info(f"Set filter for all console logger handlers to {filter_string}")
     else:
-        log.info(f"Removed filter for all console logger handlers")
+        log.info("Removed filter for all console logger handlers")
 
 
 def set_handler_levels(

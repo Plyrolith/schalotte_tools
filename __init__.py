@@ -1,6 +1,15 @@
 import bpy
-from . import casting, catalog, client, logger, ops, panels, preferences, wm_container
 
+from . import (
+    casting,  # noqa: F401
+    catalog,
+    client,
+    logger,
+    ops,  # noqa: F401
+    panels,  # noqa: F401
+    preferences,
+    wm_container,
+)
 
 log = logger.get_logger(__name__)
 

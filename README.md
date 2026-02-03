@@ -28,8 +28,8 @@ Install the add-on by searching for "schalotte" and clicking **Install**.
 - Install VSCode extensions:
   - Python
     `ext install ms-python.python`
-  - Black Formatter
-    `ext install ms-python.black-formatter`
+  - Ruff
+    `ext install charliermarsh.ruff`
   - Gitmoji
     `ext install seatonjiang.gitmoji-vscode`
 - Install [Python Poetry](https://python-poetry.org/docs/#installation)

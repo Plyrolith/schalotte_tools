@@ -11,9 +11,9 @@ packages = [{include = "schalotte_tools"}]
 python = "^3.11"
 
 [tool.poetry.group.dev.dependencies]
-black = "^25.9.0"
 flake8 = "^7.3.0"
 fake-bpy-module-latest = "^20251003"
+ruff = "^0.14.14"
 
 [build-system]
 requires = ["poetry-core"]

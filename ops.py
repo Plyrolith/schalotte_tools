@@ -1,17 +1,17 @@
 from __future__ import annotations
-from typing import Literal, TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from bpy.types import Context, Event, SoundStrip
 
 import colorsys
-from pathlib import Path
 import pprint
 import random
 import re
+from pathlib import Path
 
 import bpy
-from bpy_extras.io_utils import ImportHelper
 from bpy.props import (
     BoolProperty,
     CollectionProperty,
@@ -27,6 +27,8 @@ from bpy.types import (
     Timer,
     Window,
 )
+from bpy_extras.io_utils import ImportHelper
+
 from . import (
     camera,
     casting,
@@ -37,7 +39,6 @@ from . import (
     session,
     utils,
 )
-
 
 log = logger.get_logger(__name__)
 
@@ -241,7 +242,7 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
     _frame_start: int
     _last_frame: int | None = None
     _rendering: bool = False
-    _render_display_type: str
+    _render_display_type: Literal["NONE", "SCREEN", "AREA", "WINDOW"]
     _timer: Timer | None = None
     _use_preview_range: bool
     _use_simplify: bool
@@ -371,13 +372,13 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
         utils.render_settings(scene)
         if self.mode == "RENDER":
             # Add handlers
-            if not schalotte.set_stamp in bpy.app.handlers.frame_change_post:
+            if schalotte.set_stamp not in bpy.app.handlers.frame_change_post:
                 log.debug("Adding stamp handler")
                 bpy.app.handlers.frame_change_post.append(schalotte.set_stamp)
-            if not self._render_stop_handler in bpy.app.handlers.render_cancel:
+            if self._render_stop_handler not in bpy.app.handlers.render_cancel:
                 log.debug("Adding render cancel handler")
                 bpy.app.handlers.render_cancel.append(self._render_stop_handler)
-            if not self._render_stop_handler in bpy.app.handlers.render_complete:
+            if self._render_stop_handler not in bpy.app.handlers.render_complete:
                 log.debug("Adding render complete handler")
                 bpy.app.handlers.render_complete.append(self._render_stop_handler)
 
@@ -398,7 +399,7 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
             scene.render.use_simplify = False
             scene.use_preview_range = False
 
-            if not self._opengl_frame_handler in bpy.app.handlers.frame_change_post:
+            if self._opengl_frame_handler not in bpy.app.handlers.frame_change_post:
                 log.debug("Adding OpenGL frame change handler")
                 bpy.app.handlers.frame_change_post.append(self._opengl_frame_handler)
 
@@ -561,7 +562,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
         c = client.Client.this()
 
         # Create new comment
-        log.info(f"Creating a new comment.")
+        log.info("Creating a new comment.")
         task_id = session.Session.this().task_id
         data = {"task_status_id": self.task_status_id, "comment": self.comment}
         comment = c.post(f"actions/tasks/{task_id}/comment", data)
@@ -884,7 +885,9 @@ class SCHALOTTETOOL_OT_ImportAsset(Operator):
 
         # All unlinked assets
         if self.index == -1:
-            links = [l for l in c.links if l.file_path and not l.library_name]
+            links = [
+                link for link in c.links if link.file_path and not link.library_name
+            ]
 
         # Single asset
         else:
@@ -1120,7 +1123,7 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
             new_marker.camera = new_cam
 
             # Add sequence name for camera
-            cam_name = f"cam_"
+            cam_name = "cam_"
             sequence = session.Session.this().sequence
             if sequence:
                 sq_name = sequence.get("name")
