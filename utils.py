@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Iterable, Literal
+    from typing import Any, Generator, Iterable, Literal
 
     from bpy.types import (
+        bpy_struct,
         ID,
         Bone,
         Collection,
@@ -152,73 +153,65 @@ def get_drivable_custom_properties(
     }
 
 
-def render_settings(scene: Scene | None = None):
-    """
-    Set default render settings for given or current scene.
-
-    Args:
-        scene (Scene | None): Scene to render, defaults to the current scene
-    """
-    if not scene:
-        scene = bpy.context.scene
-
-    # Render settings
-    render = scene.render
-    render.image_settings.file_format = "FFMPEG"
-
-    # Image settings
-    image_settings = render.image_settings
-    image_settings.color_mode = "RGB"
-    image_settings.color_management = "FOLLOW_SCENE"
-    image_settings.color_depth = "8"
-
-    # FFmpeg settings
-    ffmpeg = render.ffmpeg
-    ffmpeg.format = "MPEG4"
-    ffmpeg.use_autosplit = False
-    ffmpeg.codec = "H264"
-    ffmpeg.constant_rate_factor = "MEDIUM"
-    ffmpeg.ffmpeg_preset = "GOOD"
-    ffmpeg.gopsize = 18
-    ffmpeg.use_max_b_frames = False
-    ffmpeg.audio_codec = "AAC"
-    ffmpeg.audio_channels = "STEREO"
-    ffmpeg.audio_mixrate = 48000
-    ffmpeg.audio_bitrate = 192
-    ffmpeg.audio_volume = 1.0
-
-
-def render_scene(
-    file_path: Path | str,
+def apply_render_settings(
     scene: Scene | None = None,
-    modal: bool = False,
-):
+    prop_tracker: PropTracker | None = None,
+) -> PropTracker:
     """
-    Render given or current scene.
+    Set default render settings for given or current scene and track previous settings.
 
     Args:
-        file_path (Path | str): Destination file path
         scene (Scene | None): Scene to render, defaults to the current scene
-        modal (bool): Whether to render in modal mode
+        prop_tracker (PropTracker | None): Existing property tracker or create a new one
+
+    Returns:
+        PropertyTracker: Tracker storing previous values
     """
     if not scene:
         scene = bpy.context.scene
 
-    file_path = Path(file_path)
+    if not prop_tracker:
+        prop_tracker = PropTracker(scene)  # type: ignore
 
-    # Render settings
-    render = scene.render
-    render.filepath = file_path.as_posix()
-    render.use_file_extension = True
-
-    # Render
-    file_path.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.render.render(
-        "INVOKE_DEFAULT" if modal else "EXEC_DEFAULT",
-        animation=True,
-        use_viewport=False,
-        scene=scene.name,
+    prop_tracker.set(
+        render__image_settings__file_format="FFMPEG",
+        render__image_settings__color_mode="RGB",
+        render__image_settings__color_management="FOLLOW_SCENE",
+        render__image_settings__color_depth="8",
+        render__ffmpeg__format="MPEG4",
+        render__ffmpeg__use_autosplit=False,
+        render__ffmpeg__codec="H264",
+        render__ffmpeg__constant_rate_factor="MEDIUM",
+        render__ffmpeg__ffmpeg_preset="GOOD",
+        render__ffmpeg__gopsize=18,
+        render__ffmpeg__use_max_b_frames=False,
+        render__ffmpeg__audio_codec="AAC",
+        render__ffmpeg__audio_channels="STEREO",
+        render__ffmpeg__audio_mixrate=48000,
+        render__ffmpeg__audio_bitrate=192,
+        render__ffmpeg__audio_volume=1.0,
+        render__metadata_input="SCENE",
+        render__use_stamp_date=False,
+        render__use_stamp_time=False,
+        render__use_stamp_render_time=False,
+        render__use_stamp_frame=False,
+        render__use_stamp_frame_range=False,
+        render__use_stamp_memory=False,
+        render__use_stamp_hostname=False,
+        render__use_stamp_camera=False,
+        render__use_stamp_lens=False,
+        render__use_stamp_scene=False,
+        render__use_stamp_marker=False,
+        render__use_stamp_filename=False,
+        render__use_stamp_note=False,
+        render__use_stamp=False,
+        render__stamp_font_size=24,
+        render__stamp_foreground=(1.0, 1.0, 1.0, 1.0),
+        render__stamp_background=(0.0, 0.0, 0.0, 1.0),
+        render__use_stamp_labels=False,
+        render__stamp_note_text="",
     )
+    return prop_tracker
 
 
 def playblast_scene(
@@ -611,7 +604,6 @@ def get_packed_sound_strips(scene: Scene | None = None) -> list[SoundStrip]:
 
     packed_strips = []
     for strip in scene.sequence_editor_create().strips_all:  # type: ignore
-
         # Check if the strip is packed
         if strip.type == "SOUND" and strip.sound and strip.sound.packed_file:
             packed_strips.append(strip)
@@ -665,3 +657,116 @@ def temp_window(context: Context | None = None):
         yield window
     finally:
         close_window(window, context)
+
+
+@contextlib.contextmanager
+def temp_props(struct: bpy_struct, **kwargs) -> Generator[PropTracker, Any, Any]:
+    """
+    Create a context with temporary property values for given struct.
+
+    Args:
+        struct (bpy_struct): Struct to store and set values for
+        **: prop names and values, double underscores for nested props
+    """
+    prop_tracker = PropTracker(struct, **kwargs)
+    try:
+        yield prop_tracker
+    finally:
+        prop_tracker.revert()
+
+
+class PropTracker:
+    """
+    Set a struct's properties to temporary values and easily revert to previous ones.
+    """
+
+    struct: bpy_struct
+    value_dict: dict[str, tuple[Any, Any]]
+
+    def __init__(self, struct: bpy_struct, **kwargs):
+        """
+        Save previous values, set new values and save them as well.
+
+        Args:
+            struct (bpy_struct): Struct to store and set values for
+            **: prop names and values, double underscores for nested props
+        """
+        self.struct = struct
+        self.value_dict = {}
+        self.set(**kwargs)
+
+    def get_new(self, prop: str) -> Any:
+        """
+        Return the struct's stored newly applied value for given prop name.
+
+        Args:
+            prop (str): Name of the property whose new value is returned
+        """
+        prop = prop.replace("__", ".")
+        return self.value_dict[prop][1]
+
+    def get_old(self, prop: str) -> Any:
+        """
+        Return the struct's previously stored value for given prop name.
+
+        Args:
+            prop (str): Name of the property whose old value is returned
+        """
+        prop = prop.replace("__", ".")
+        return self.value_dict[prop][0]
+
+    def reapply(self):
+        """
+        Apply the new values to the struct again.
+        """
+        for prop_key, (_, value) in self.value_dict.items():
+            # Convert double underscores to dots
+            prop = prop_key.replace("__", ".")
+
+            # Navigate to nested property
+            current = self.struct
+            parts = prop.split(".")
+
+            for part in parts[:-1]:
+                current = getattr(current, part)
+
+            setattr(current, parts[-1], value)
+
+    def revert(self):
+        """
+        Revert the struct's values to the stored ones.
+        """
+        for prop_key, (value, _) in self.value_dict.items():
+            # Convert double underscores to dots
+            prop = prop_key.replace("__", ".")
+
+            # Navigate to nested property
+            current = self.struct
+            parts = prop.split(".")
+
+            for part in parts[:-1]:
+                current = getattr(current, part)
+
+            setattr(current, parts[-1], value)
+
+    def set(self, **kwargs):
+        """
+        Set values and store previous one. Overrides previous entries.
+
+        Args:
+            **: prop names and values, double underscores for nested props
+        """
+        for prop_key, value in kwargs.items():
+            # Convert double underscores to dots
+            prop = prop_key.replace("__", ".")
+
+            # Navigate to nested property
+            current = self.struct
+            parts = prop.split(".")
+
+            for part in parts[:-1]:
+                current = getattr(current, part)
+
+            old_value = getattr(current, parts[-1])
+            self.value_dict[prop] = (old_value, value)
+            setattr(current, parts[-1], value)
