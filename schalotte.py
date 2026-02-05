@@ -371,12 +371,13 @@ def ensure_storyboard_compositing(scene: Scene | None = None):
     node_tree.links.new(hsv.inputs["Image"], rlay.outputs["Image"])
 
 
-def generate_shot_blend_path(task_id: str) -> Path | None:
+def generate_shot_blend_path(task_id: str, use_short_sq: bool = False) -> Path | None:
     """
     Generate the expected file path for given task ID.
 
     Args:
         task_id (str): Task ID
+        use_full_sq (bool): Use the short sequence name, removing all but sq + number
 
     Returns:
         Path | None: Path object for the expected file path, if successful
@@ -442,6 +443,10 @@ def generate_shot_blend_path(task_id: str) -> Path | None:
     ep_short = f"e{ep_name[-2:]}"
     sq_match = re.match(r"sq(\d)(\d{2})(\d)", sq_name)
     if sq_match:
+        # Remove descriptions after number
+        if use_short_sq:
+            sq_name = sq_match.group()
+        # Reduce for file name
         groups = sq_match.groups()
         sq_short = "sq"
         if groups[0] != "0":
@@ -450,7 +455,14 @@ def generate_shot_blend_path(task_id: str) -> Path | None:
         if groups[2] != "0":
             sq_short += groups[2]
     else:
-        sq_short = sq_name
+        # Remove descriptions after number (any padding)
+        sq_match = re.match(r"sq(\d+)", sq_name)
+        if sq_match:
+            sq_short = sq_match.group()
+            if use_short_sq:
+                sq_name = sq_match.group()
+        else:
+            sq_short = sq_name
     tt_file = "" if task_name == "Storyboard" else f"_{task_name.split(' ')[0]}"
     file_name = f"SCH{tt_file}_s01_{ep_short}_{sq_short}.blend"
 

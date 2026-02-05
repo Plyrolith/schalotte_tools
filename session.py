@@ -190,11 +190,19 @@ class Session(catalog.WindowManagerModule):
             self.work_file_status = "NONE"
             return
 
-        task_path = schalotte.generate_shot_blend_path(self.task_id)
-        if not task_path:
+        short_path = schalotte.generate_shot_blend_path(self.task_id, True)
+        long_path = schalotte.generate_shot_blend_path(self.task_id, False)
+        if not short_path or not long_path:
             log.debug("Task path cannot be generated.")
             self.work_file_status = "INVALID"
             return
+
+        # Prefer short path but check both
+        if long_path.exists():
+            task_path = long_path
+        else:
+            task_path = short_path
+
         self.work_file_path = task_path.as_posix()
 
         if self.current_file_path and utils.are_same_paths(
@@ -316,9 +324,9 @@ class Session(catalog.WindowManagerModule):
         log.debug(f"Detected project: {path_pr}")
 
         # Get episode and sequence from parent folders
-        path_ep = re.sub(r"[^0-9a-z]", "", file_path.parents[1].name.lower())
+        path_ep = file_path.parents[1].name.lower()
         log.debug(f"Detected episode: {path_ep}")
-        path_sq = re.sub(r"[^0-9a-z]", "", file_path.parents[0].name.lower())
+        path_sq = file_path.parents[0].name.lower()
         log.debug(f"Detected sequence: {path_sq}")
 
         # Get shot from file name
@@ -362,7 +370,9 @@ class Session(catalog.WindowManagerModule):
         if len(sequences_enum) < 2:
             log.error("No sequences found")
         for sequence_enum in sequences_enum[1:]:
-            if path_sq == sequence_enum[1].lower():
+            sq_lower = sequence_enum[1].lower()
+            sq_match = re.search(r"(sq\d+)", sq_lower)
+            if path_sq == sq_lower or (sq_match and path_sq == sq_match.group()):
                 self.sequence_id = sequence_enum[0]
                 break
         else:
