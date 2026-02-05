@@ -1366,9 +1366,15 @@ class SCHALOTTETOOL_OT_SetMarkerShotPreviewRange(Operator):
     bl_label = "Set Marker Shot Preview Range"
     bl_options = {"REGISTER", "UNDO"}
 
+    use_toggle: BoolProperty(
+        name="Toggle",
+        description="Unset if current preview range matches current shot",
+        default=True,
+    )
+
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
-        Set preview range to current camera marker shot.
+        Set or unset preview range to current camera marker shot.
 
         Args:
             context (Context)
@@ -1378,9 +1384,19 @@ class SCHALOTTETOOL_OT_SetMarkerShotPreviewRange(Operator):
         """
         scene = context.scene
         _, start_frame, end_frame = schalotte.get_marker_shot_range(scene)
-        scene.use_preview_range = True
-        scene.frame_preview_start = start_frame
-        scene.frame_preview_end = end_frame
+
+        # Disable if already set
+        if (
+            self.use_toggle
+            and scene.use_preview_range
+            and scene.frame_preview_end == end_frame
+            and scene.frame_preview_start == start_frame
+        ):
+            scene.use_preview_range = False
+        else:
+            scene.use_preview_range = True
+            scene.frame_preview_start = start_frame
+            scene.frame_preview_end = end_frame
 
         return {"FINISHED"}
 
