@@ -79,4 +79,4 @@ def unregister():
 
     # Classes un-registration
     log.info("Unregistering bpy classes")
-    catalog.deregister_bpy()
+    catalog.unregister_bpy()

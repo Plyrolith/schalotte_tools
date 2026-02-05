@@ -56,7 +56,7 @@ class CameraSettings(PropertyGroup):
             bpy.app.handlers.animation_playback_post.append(hide_inactive_cameras)
 
     @classmethod
-    def deregister(cls):
+    def unregister(cls):
         """
         Remove handler to hide inactive cameras post frame change.
         """

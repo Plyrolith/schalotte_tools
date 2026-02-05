@@ -29,7 +29,7 @@ bpy_window_manager_classes: list[WindowManagerModule] = []
 bpy_preferences_classes: list[PreferencesModule] = []
 post_register_functions: list[Callable] = []
 post_initialization_functions: list[Callable] = []
-pre_deregister_functions: list[Callable] = []
+pre_unregister_functions: list[Callable] = []
 
 
 # Decorators for add-on initialization
@@ -156,23 +156,19 @@ def register_bpy():
     for bpy_cls in bpy_register_classes:
         try:
             bpy.utils.register_class(bpy_cls)  # type: ignore
-            if hasattr(bpy_cls, "register"):
-                bpy_cls.register()  # type: ignore
         except Exception as e:
             log.error(f"Failed to register class {bpy_cls}: {e}")
             raise e
 
 
-def deregister_bpy():
+def unregister_bpy():
     """
-    Loop through all collected classes and deregister them with bpy.
+    Loop through all collected classes and unregister them with bpy.
     """
     for bpy_cls in reversed(
         bpy_preferences_classes + bpy_window_manager_classes + bpy_register_classes
     ):
         try:
-            if hasattr(bpy_cls, "deregister"):
-                bpy_cls.deregister()  # type: ignore
             bpy.utils.unregister_class(bpy_cls)  # type: ignore
         except Exception as e:
             log.error(f"Failed to unregister class {bpy_cls}: {e}")
