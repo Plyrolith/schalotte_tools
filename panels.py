@@ -6,9 +6,11 @@ if TYPE_CHECKING:
     from bpy.types import Context
 
 import bpy
-from bpy.types import Panel
+from bpy.types import Panel, TIME_MT_editor_menus  # type: ignore
 
-from . import catalog, client, draw, ops, session
+from . import catalog, client, draw, logger, ops, session
+
+log = logger.get_logger(__name__)
 
 
 @catalog.bpy_register
@@ -53,6 +55,23 @@ class SCHALOTTE_PT_storyboard(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 2
+
+    @classmethod
+    def register(cls):
+        """
+        Add the shot marker preview range operator to the timeline.
+        """
+        TIME_MT_editor_menus.append(draw.shot_range_button)
+
+    @classmethod
+    def unregister(cls):
+        """
+        Remove the shot marker preview range operator from the timeline.
+        """
+        try:
+            TIME_MT_editor_menus.remove(draw.shot_range_button)
+        except Exception as e:
+            log.debug(f"Timeline draw function has already removed: {e}")
 
     @classmethod
     def poll(cls, context) -> bool:

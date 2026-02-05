@@ -418,3 +418,17 @@ def camera_ui(self: Panel, context: Context):
     row_guides.prop(c, "show_composition_golden", icon="MOD_MULTIRES", toggle=True)
     row_guides.prop(c, "show_composition_center", icon="SPLIT_VERTICAL", toggle=True)
     row_guides.prop(view_3d, "view_overlay", text="")
+
+
+def shot_range_button(self: Panel, context: Context):
+    """
+    Shot the marker preview range operator if StoryLiner is not active.
+    """
+    scene = context.scene
+    if any(marker.camera for marker in scene.timeline_markers):
+        self.layout.operator(
+            operator=ops.SCHALOTTETOOL_OT_SetMarkerShotPreviewRange.bl_idname,
+            text="Toggle Shot Range",
+            icon="PREVIEW_RANGE",
+            depress=scene.use_preview_range,
+        )
