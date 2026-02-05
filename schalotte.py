@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 import colorsys
 import random
+import re
 from pathlib import Path
 
 import bpy
@@ -419,7 +420,7 @@ def generate_shot_blend_path(task_id: str) -> Path | None:
         return
 
     # Sequence name
-    sq_name = sequence.get("name")
+    sq_name: str = sequence.get("name", "")
     if not sq_name:
         log.error(f"Sequence {sequence_id} has no name.")
         return
@@ -439,7 +440,17 @@ def generate_shot_blend_path(task_id: str) -> Path | None:
 
     # File name
     ep_short = f"e{ep_name[-2:]}"
-    sq_short = f"sq{sq_name[-3:-1]}"
+    sq_match = re.match(r"sq(\d)(\d{2})(\d)", sq_name)
+    if sq_match:
+        groups = sq_match.groups()
+        sq_short = "sq"
+        if groups[0] != "0":
+            sq_short += groups[0]
+        sq_short += groups[1]
+        if groups[2] != "0":
+            sq_short += groups[2]
+    else:
+        sq_short = sq_name
     tt_file = "" if task_name == "Storyboard" else f"_{task_name.split(' ')[0]}"
     file_name = f"SCH{tt_file}_s01_{ep_short}_{sq_short}.blend"
 
