@@ -1118,7 +1118,7 @@ def get_missing_asset_libraries(
     missing_libs = []
     for al_dict in ASSET_LIBRARIES:
         for asset_lib in context.preferences.filepaths.asset_libraries:
-            if utils.same_paths(asset_lib.path, Path(root_path, al_dict["path"])):
+            if utils.are_same_paths(asset_lib.path, Path(root_path, al_dict["path"])):
                 break
         else:
             missing_libs.append(al_dict)

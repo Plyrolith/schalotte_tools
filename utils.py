@@ -641,40 +641,6 @@ def close_window(window: Window, context: Context | None = None):
         bpy.ops.wm.window_close()
 
 
-def same_paths(*paths: str | Path) -> bool:
-    """
-    Checks whether a list of paths points to the same file/folder.
-
-    Parameters:
-        - *paths (str | Path): Paths to compare
-
-    Returns:
-        - bool: Whether all paths are the same or not
-    """
-    if len(paths) == 1:
-        return True
-
-    first_path = None
-    for path in paths:
-        # If path is a string, guarantee absolute path and convert to pathlib
-        if isinstance(path, str):
-            path = Path(bpy.path.abspath(path))
-
-        # Resolve and convert to posix
-        path = path.resolve().as_posix()
-
-        # Store first path for comparison
-        if not first_path:
-            first_path = path
-            continue
-
-        # Compare
-        if path != first_path:
-            return False
-
-    return True
-
-
 @contextlib.contextmanager
 def temp_window(context: Context | None = None):
     """
