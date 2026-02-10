@@ -152,9 +152,10 @@ class CameraSettings(PropertyGroup):
                 cam.parent.hide_viewport = self.hide_inactive_cameras  # type: ignore
 
         # Ensure active camera is visible
-        active_cam.hide_viewport = False  # type: ignore
-        if active_cam.parent:  # type: ignore
-            active_cam.parent.hide_viewport = False  # type: ignore
+        if active_cam:
+            active_cam.hide_viewport = False  # type: ignore
+            if active_cam.parent:  # type: ignore
+                active_cam.parent.hide_viewport = False  # type: ignore
 
     def set_up_camera(self, camera: Camera):
         """
