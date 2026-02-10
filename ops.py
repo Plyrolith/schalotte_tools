@@ -691,7 +691,7 @@ class SCHALOTTETOOL_OT_AddSoundStrips(Operator, ImportHelper):  # type: ignore
             if layout_takes.is_dir():
                 self.directory = layout_takes.as_posix()
             else:
-                self.directory = Path(file_path).parent.as_posix()
+                self.directory = Path(audio_path).as_posix()
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
 
@@ -1488,4 +1488,53 @@ class SCHALOTTETOOL_OT_KeyframeAllRigs(Operator):
                 # Set keyframes
                 utils.insert_pbone_keyframe(pbone, frame)  # type: ignore
 
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_AddAssetLibrary(Operator):
+    bl_idname = "schalotte.add_asset_library"
+    bl_label = "Add Asset Library"
+    bl_options = {"REGISTER", "UNDO"}
+
+    name: StringProperty(name="Name", description="Display name of the asset library")
+    path: StringProperty(
+        name="Path",
+        description="Path to a directory with .blend files to use as an asset library",
+    )
+    import_method: EnumProperty(
+        items=(
+            ("LINK", "Link", "Import the assets as linked data-block"),
+            ("APPEND", "Append", "Import the asset as copied data-block"),
+            (
+                "APPEND_REUSE",
+                "Append (Reuse Data)",
+                "Import as copied data-block, avoiding duplicate data",
+            ),
+        ),
+        name="Import Method",
+        description="Determine how the asset will be imported",
+    )
+    use_relative_path: BoolProperty(
+        name="Relative Path",
+        description="Use relative path when linking assets from this asset library",
+        default=True,
+    )
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Select pose bones of an armature object.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        asset_library = context.preferences.filepaths.asset_libraries.new(
+            name=self.name,
+            directory=self.path,
+        )
+        asset_library.use_relative_path = self.use_relative_path
+        asset_library.import_method = self.import_method
         return {"FINISHED"}

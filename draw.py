@@ -9,7 +9,7 @@ from pathlib import Path
 
 import bpy
 
-from . import camera, casting, client, ops, preferences, session
+from . import camera, casting, client, ops, preferences, schalotte, session
 
 
 def login_ui(self: Panel | AddonPreferences, context: Context):
@@ -432,3 +432,21 @@ def shot_range_button(self: Panel, context: Context):
             icon="PREVIEW_RANGE",
             depress=scene.use_preview_range,
         )
+
+
+def asset_libraries_ui(self: Panel, context: Context):
+    """
+    Draw a panel to add missing asset libraries.
+    """
+    layout = self.layout
+    root_path = schalotte.find_project_root()
+    for asset_lib in schalotte.get_missing_asset_libraries(context):
+        op = layout.row().operator(
+            ops.SCHALOTTETOOL_OT_AddAssetLibrary.bl_idname,
+            text=f"Add {asset_lib['name']} Library",
+            icon="ASSET_MANAGER",
+        )
+        op.name = asset_lib["name"]
+        op.path = Path(root_path, asset_lib["path"]).as_posix()  # type: ignore
+        op.import_method = asset_lib["import_method"]
+        op.use_relative_path = asset_lib["use_relative_path"]

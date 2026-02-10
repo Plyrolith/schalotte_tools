@@ -57,6 +57,21 @@ STB_SETUP_FILE_REL = Path(
     "SCH_s01_e0x_sq0x_STB_setup.blend",
 )
 
+ASSET_LIBRARIES = [
+    {
+        "name": "Animation Library",
+        "path": "02_04_animation/02_03_01_animation_library",
+        "import_method": "APPEND_REUSE",
+        "use_relative_path": True,
+    },
+    {
+        "name": "Storyboard Toolbox",
+        "path": "02_02_storyboard/storyboard_tool_box",
+        "import_method": "APPEND_REUSE",
+        "use_relative_path": True,
+    },
+]
+
 
 def find_project_root(
     root_name: str = "02_production",
@@ -472,7 +487,8 @@ def generate_shot_blend_path(task_id: str, use_short_sq: bool = False) -> Path |
 
 def generate_sound_path(sequence_id: str) -> Path | None:
     """
-    Generate the expected sound path for given sequence.
+    Generate the expected sound path for given sequence and return if it exists.
+    Fall back to episode.
 
     Args:
         sequence_id (str): Sequence ID
@@ -511,7 +527,18 @@ def generate_sound_path(sequence_id: str) -> Path | None:
         return
 
     # Build path
-    return project_root / "02_08_sound" / "s01" / ep_name / sq_name
+    ep_path = Path(project_root, "02_08_sound", "s01", ep_name)
+    sq_path = Path(ep_path, sq_name)
+
+    if sq_path.exists():
+        log.debug(f"Sequence sound path: {sq_path}")
+        return sq_path
+
+    elif ep_path.exists():
+        log.debug(f"Episode sound path: {ep_path}")
+        return ep_path
+
+    log.debug(f"Path does not exist: {sq_path}")
 
 
 def setup_storyboard(scene: Scene | None = None):
@@ -1070,3 +1097,30 @@ def set_stamp(scene: Scene | None = None, _=None):
     render.stamp_background = (0.0, 0.0, 0.0, 1.0)
     render.use_stamp_labels = False
     render.stamp_note_text = stamp
+
+
+def get_missing_asset_libraries(
+    context: Context | None = None,
+) -> list[dict[str, str | bool]]:
+    """
+    Return asset library definitions that are not added yet.
+
+    Args:
+        Context (Context | None)
+
+    Returns:
+        list[dict[str, str |bool ]]: List of missing asset library definitions
+    """
+    root_path = find_project_root()
+    if not root_path:
+        return []
+
+    missing_libs = []
+    for al_dict in ASSET_LIBRARIES:
+        for asset_lib in context.preferences.filepaths.asset_libraries:
+            if utils.same_paths(asset_lib.path, Path(root_path, al_dict["path"])):
+                break
+        else:
+            missing_libs.append(al_dict)
+
+    return missing_libs

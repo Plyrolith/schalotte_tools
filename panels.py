@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 import bpy
 from bpy.types import Panel, TIME_MT_editor_menus  # type: ignore
 
-from . import catalog, client, draw, logger, ops, session
+from . import catalog, client, draw, logger, ops, schalotte, session
 
 log = logger.get_logger(__name__)
 
@@ -48,13 +48,30 @@ class SCHALOTTE_PT_session(Panel):
 
 
 @catalog.bpy_register
+class SCHALOTTE_PT_asset_libraries(Panel):
+    bl_idname = "SCHALOTTE_PT_asset_libraries"
+    bl_category = "Schalotte Tools"
+    bl_label = "Asset Libraries"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_order = 2
+
+    @classmethod
+    def poll(cls, context: Context):
+        return bool(schalotte.get_missing_asset_libraries(context))
+
+    def draw(self, context: Context):
+        draw.asset_libraries_ui(self, context)
+
+
+@catalog.bpy_register
 class SCHALOTTE_PT_storyboard(Panel):
     bl_idname = "SCHALOTTE_PT_storyboard"
     bl_category = "Schalotte Tools"
     bl_label = "Storyboard"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 2
+    bl_order = 3
 
     @classmethod
     def register(cls):
@@ -91,7 +108,7 @@ class SCHALOTTE_PT_camera(Panel):
     bl_label = "Camera"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 3
+    bl_order = 4
 
     def draw(self, context: Context):
         draw.camera_ui(self, context)
@@ -124,7 +141,7 @@ class SCHALOTTE_PT_preview(Panel):
     bl_label = "Preview"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 4
+    bl_order = 5
 
     @classmethod
     def poll(cls, context: Context):
@@ -149,7 +166,7 @@ class SCHALOTTE_PT_casting(Panel):
     bl_label = "Casting"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 5
+    bl_order = 6
 
     @classmethod
     def poll(cls, context: Context):
