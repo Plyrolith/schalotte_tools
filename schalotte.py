@@ -66,7 +66,7 @@ ASSET_LIBRARIES = [
     },
     {
         "name": "Storyboard Toolbox",
-        "path": "02_02_storyboard/storyboard_tool_box",
+        "path": "02_02_storyboard/storyboard_toolbox",
         "import_method": "APPEND_REUSE",
         "use_relative_path": True,
     },
