@@ -1142,6 +1142,9 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
         # Go to the new shot
         context.scene.frame_current = frame_start
 
+        # Hide inactive cameras
+        camera.CameraSettings.this().update_hide_inactive_cameras(context)
+
         return {"FINISHED"}
 
 
