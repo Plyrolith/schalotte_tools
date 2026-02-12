@@ -1485,7 +1485,9 @@ class SCHALOTTETOOL_OT_KeyframeAllRigs(Operator):
 
             # Only controllers
             for pbone in obj.pose.bones:
-                if pbone.name.startswith(("DEF", "MCH", "ORG", "VIS")):
+                if pbone.name == "VIS_Global_Mouth":
+                    ...
+                elif pbone.name.startswith(("DEF", "MCH", "ORG", "VIS")):
                     continue
 
                 # Set keyframes
