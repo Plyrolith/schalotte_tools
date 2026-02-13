@@ -654,7 +654,7 @@ def setup_storyboard(scene: Scene | None = None):
                     slot.material = material
 
     # Camera
-    ensure_camera_rig(scene, False)
+    # ensure_camera_rig(scene, False)
 
     # World
     scene.world = ensure_storyboard_world()
