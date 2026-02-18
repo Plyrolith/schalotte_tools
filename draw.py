@@ -140,6 +140,7 @@ def session_ui(self: Panel, context: Context):
 
         case "EXISTS":
             row_file.operator_context = "EXEC_DEFAULT"
+            row_file.operator_context = "INVOKE_DEFAULT"
             op_file = row_file.operator(
                 operator="wm.open_mainfile",
                 text="Open Work File",
@@ -148,6 +149,7 @@ def session_ui(self: Panel, context: Context):
             op_file.filepath = s.work_file_path
             op_file.load_ui = False
             op_file.use_scripts = False
+            op_file.display_file_selector = False
             op_open = row_file.operator(
                 operator="wm.path_open",
                 text="",
