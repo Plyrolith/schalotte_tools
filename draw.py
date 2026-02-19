@@ -200,10 +200,6 @@ def casting_ui(self: Panel, context: Context):
         return
 
     # Append for storyboard tasks
-    s = session.Session.this()
-    is_storyboard = s.task and s.task.get("task_type_name", "").lower() == "storyboard"
-    link_icon = "APPEND_BLEND" if is_storyboard else "LINKED"
-
     col_casting = layout.column()
     col_atype_map = {}
     for i, link in enumerate(c.links):
@@ -225,15 +221,15 @@ def casting_ui(self: Panel, context: Context):
         row_link.enabled = bool(link.file_path)
         row_link.label(
             text="",
-            icon=link_icon if link.library_name else "BLANK1",
+            icon="LINKED" if link.library_name else "BLANK1",
         )
         op_link = row_link.operator(
             operator=ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
             text="",
-            icon="PLUS" if link.library_name else link_icon,
+            icon="PLUS" if link.library_name else "LINKED",
         )
         op_link.index = i
-        op_link.mode = "APPEND" if is_storyboard else "AUTO"
+        op_link.mode = "AUTO"
 
     # Operator to link all missing
     if c.links:
@@ -243,11 +239,11 @@ def casting_ui(self: Panel, context: Context):
         )
         op_all = row_all.operator(
             operator=ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
-            text="Append All Missing" if is_storyboard else "Link All Missing",
-            icon=link_icon,
+            text="Link All Missing",
+            icon="LINKED",
         )
         op_all.index = -1
-        op_all.mode = "APPEND" if is_storyboard else "AUTO"
+        op_all.mode = "AUTO"
 
 
 def camera_ui(self: Panel, context: Context):

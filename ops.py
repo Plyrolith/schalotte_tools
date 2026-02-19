@@ -847,15 +847,15 @@ class SCHALOTTETOOL_OT_ImportAsset(Operator):
     def description(cls, context: Context, properties: OperatorProperties) -> str:
         match properties.mode:
             case "INSTANCE":
-                return "Instantiate a cast asset to the scene"
+                return "Instantiate this cast asset to the scene"
             case "STATIC_OVERRIDE":
-                return "Create a static override for a cast asset"
+                return "Create a static override for this asset"
             case "EDITABLE_OVERRIDE":
-                return "Create a fully animatable override for a cast asset"
+                return "Create a fully animatable override for this asset"
             case "APPEND":
-                return "Append a cast asset to the scene"
+                return "Append this asset to the scene"
             case _:
-                return "Import a cast asset to the scene, based on its staging state"
+                return "Link or instantiate this asset, based on its staging state"
 
     @classmethod
     def poll(cls, context) -> bool:
