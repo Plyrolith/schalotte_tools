@@ -135,13 +135,26 @@ class SCHALOTTE_PT_storyboard_sequencer(Panel):
 
 
 @catalog.bpy_register
+class SCHALOTTE_PT_performance(Panel):
+    bl_idname = "SCHALOTTE_PT_performance"
+    bl_category = "Schalotte Tools"
+    bl_label = "Performance"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_order = 5
+
+    def draw(self, context: Context):
+        draw.performance_ui(self, context)
+
+
+@catalog.bpy_register
 class SCHALOTTE_PT_preview(Panel):
     bl_idname = "SCHALOTTE_PT_preview"
     bl_category = "Schalotte Tools"
     bl_label = "Preview"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 5
+    bl_order = 6
 
     @classmethod
     def poll(cls, context: Context):
@@ -166,7 +179,7 @@ class SCHALOTTE_PT_casting(Panel):
     bl_label = "Casting"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_order = 6
+    bl_order = 7
 
     @classmethod
     def poll(cls, context: Context):

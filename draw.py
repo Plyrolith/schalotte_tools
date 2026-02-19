@@ -448,3 +448,25 @@ def asset_libraries_ui(self: Panel, context: Context):
         op.path = Path(root_path, asset_lib["path"]).as_posix()  # type: ignore
         op.import_method = asset_lib["import_method"]
         op.use_relative_path = asset_lib["use_relative_path"]
+
+
+def performance_ui(self: Panel, context: Context):
+    """
+    Draw a panel with performance optimization tools.
+    """
+    layout = self.layout
+
+    # Asset collection toggles
+    excluded_dict = context.scene.get("schalotte_excluded_assets", {})
+    row_toggle = layout.row(align=True)
+    for asset_type in ("#CH", "#PROP", "#SET"):
+        is_excluded = bool(excluded_dict.get(asset_type))
+        row_exclude = row_toggle.row(align=True)
+        row_exclude.alert = is_excluded
+        op_toggle = row_exclude.operator(
+            ops.SCHALOTTETOOL_OT_ToggleAssetCollectionsExclusion.bl_idname,
+            text=asset_type,
+            icon="CHECKBOX_DEHLT" if is_excluded else "CHECKBOX_HLT",
+            depress=is_excluded,
+        )
+        op_toggle.type_collection = asset_type

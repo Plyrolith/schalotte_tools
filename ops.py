@@ -1543,3 +1543,55 @@ class SCHALOTTETOOL_OT_AddAssetLibrary(Operator):
         asset_library.use_relative_path = self.use_relative_path
         asset_library.import_method = self.import_method
         return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_ToggleAssetCollectionsExclusion(Operator):
+    bl_idname = "schalotte.toggle_asset_collections_exclusion"
+    bl_label = "Toggle Asset Collections Exclusion"
+    bl_options = {"REGISTER", "UNDO"}
+
+    type_collection: EnumProperty(
+        items=(
+            ("#SET", "Sets", "Sets"),
+            ("#PROP", "Props", "Props"),
+            ("#CH", "Characters", "Characters"),
+        ),
+        name="Asset Type",
+        description="Asset type collection",
+    )
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        """
+        Generate description based on properties.
+        """
+        action = (
+            "Unhide all "
+            if context.scene.get("schalotte_excluded_assets", {}).get(
+                properties.type_collection
+            )
+            else "Hide all unselected "
+        )
+        match properties.type_collection:
+            case "#SET":
+                return action + "sets"
+            case "#PROP":
+                return action + "props"
+            case "#CH":
+                return action + "characters"
+            case _:
+                return "Toggle exclusion for asset collections"
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Toggle exclusion for asset collections.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        schalotte.toggle_asset_collections_exclusion(self.type_collection, context)
+        return {"FINISHED"}

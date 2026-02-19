@@ -1124,3 +1124,72 @@ def get_missing_asset_libraries(
             missing_libs.append(al_dict)
 
     return missing_libs
+
+
+def toggle_asset_collections_exclusion(
+    type_name: str = "#CH",
+    context: Context | None = None,
+) -> list[str]:
+    """
+    Toggle all asset collections with specified type collection and mark them in a scene
+    property.
+
+    Args:
+        context (Context)
+    """
+    if not context:
+        context = bpy.context
+
+    scene = context.scene
+    if not scene:
+        return []
+
+    # Check for excluded assets
+    prop_name = "schalotte_excluded_assets"
+    excluded_assets: dict = scene.get(prop_name, {})
+
+    old_excluded = excluded_assets.get(type_name)
+    new_excluded = []
+
+    # Iterate layer collections
+    layer_col = context.view_layer.layer_collection.children.get(type_name)
+    if not layer_col:
+        log.error(f"{type_name} not in {context.view_layer} layer collection")
+        return []
+
+    for child in layer_col.children:
+        # Include if already excluded
+        if old_excluded and child.name in old_excluded:
+            child.exclude = False
+
+        # Exclude if not selected
+        elif not child.exclude:
+            # Check if collection contains any selected object
+            if any(
+                obj in set(child.collection.all_objects)
+                for obj in context.selected_objects
+            ):
+                continue
+
+            # Exclude and register
+            child.exclude = True
+            new_excluded.append(child.name)
+
+    # Remove the type name from exclusions
+    if old_excluded:
+        excluded_assets.pop(type_name)
+
+        # Remove prop if no exclusions are left
+        if not excluded_assets.keys:
+            del scene[prop_name]
+
+    # Store exclusions on scene
+    if new_excluded:
+        # Create scene key if not present
+        if not scene.get(prop_name):
+            scene[prop_name] = {}
+
+        # Store list
+        scene[prop_name][type_name] = new_excluded
+
+    return new_excluded
