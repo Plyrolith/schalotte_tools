@@ -70,13 +70,13 @@ def storyboard_ui(self: Panel, context: Context):
     row_add = layout.row(align=True)
     row_add.operator(
         ops.SCHALOTTETOOL_OT_AddShot.bl_idname,
+        text="New Shot",
         icon="CON_CAMERASOLVER",
-    ).use_current_camera = True
+    ).use_current_camera = False
     row_add.operator(
         ops.SCHALOTTETOOL_OT_AddShot.bl_idname,
-        text="",
-        icon="ADD",
-    ).use_current_camera = False
+        text="Copy Current",
+    ).use_current_camera = True
 
 
 def preview_ui(self: Panel, context: Context):
