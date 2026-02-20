@@ -1142,7 +1142,7 @@ def set_asset_collections_exclusion(
             - EXCLUDE
             - INCLUDE
             - TOGGLE
-        context (Context): Blender context
+        context (Context | None): Blender context
 
     Returns:
         list[str] | None: List of excluded asset collection names, if exclusion
