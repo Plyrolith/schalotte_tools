@@ -1180,7 +1180,7 @@ def toggle_asset_collections_exclusion(
         excluded_assets.pop(type_name)
 
         # Remove prop if no exclusions are left
-        if not excluded_assets.keys:
+        if not excluded_assets.keys():
             del scene[prop_name]
 
     # Store exclusions on scene
