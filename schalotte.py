@@ -1162,24 +1162,28 @@ def set_asset_collections_exclusion(
 
     # Check for excluded assets
     prop_name = "schalotte_excluded_assets"
-    excluded_map: dict = scene.get(prop_name, {})
+    excluded_map: dict = scene.get(prop_name)
+    if excluded_map:
+        excluded_names = excluded_map.get(type_name, [])
+    else:
+        excluded_names = []
 
     # Exclude
-    excluded_names = excluded_map.get(type_name, [])
     if mode == "INCLUDE" or (mode == "TOGGLE" and excluded_names):
-        for collection_name in excluded_names:
-            asset_col = layer_col.children.get(collection_name)
-            if asset_col:
-                asset_col.exclude = False
-            else:
-                log.error(f"Could not find {collection_name} in {layer_col.name}")
+        if excluded_map is not None:
+            for collection_name in excluded_names:
+                asset_col = layer_col.children.get(collection_name)
+                if asset_col:
+                    asset_col.exclude = False
+                else:
+                    log.error(f"Could not find {collection_name} in {layer_col.name}")
 
-        # Remove the type name from exclusions
-        excluded_map.pop(type_name, None)
+            # Remove the type name from exclusions
+            excluded_map.pop(type_name, None)
 
-        # Remove prop if no exclusions are left
-        if not excluded_map.keys():
-            del scene[prop_name]
+            # Remove prop if no exclusions are left
+            if not excluded_map.keys():
+                del scene[prop_name]
 
     # Include
     else:
