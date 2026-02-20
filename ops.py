@@ -330,6 +330,11 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
         """
         scene = context.scene
 
+        # Remove performance exclusions
+        schalotte.set_asset_collections_exclusion("#CH", "INCLUDE", context)
+        schalotte.set_asset_collections_exclusion("#PROP", "INCLUDE", context)
+        schalotte.set_asset_collections_exclusion("#SET", "INCLUDE", context)
+
         # Backup
         self._render_display_type = context.preferences.view.render_display_type
         self._scene_tracker = utils.PropTracker(scene)  # type: ignore
@@ -1593,5 +1598,9 @@ class SCHALOTTETOOL_OT_ToggleAssetCollectionsExclusion(Operator):
         Returns:
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
-        schalotte.toggle_asset_collections_exclusion(self.type_collection, context)
+        schalotte.set_asset_collections_exclusion(
+            self.type_collection,
+            "TOGGLE",
+            context,
+        )
         return {"FINISHED"}

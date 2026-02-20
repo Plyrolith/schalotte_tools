@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from typing import Literal
     from bpy.types import (
         Collection,
         CompositorNodeTree,
@@ -1126,16 +1127,25 @@ def get_missing_asset_libraries(
     return missing_libs
 
 
-def toggle_asset_collections_exclusion(
+def set_asset_collections_exclusion(
     type_name: str = "#CH",
+    mode: Literal["EXCLUDE", "INCLUDE", "TOGGLE"] = "TOGGLE",
     context: Context | None = None,
-) -> list[str]:
+) -> list[str] | None:
     """
-    Toggle all asset collections with specified type collection and mark them in a scene
-    property.
+    Set or unset asset collection exclusion with specified type collection and mark them
+    in a scene poperty if excluded.
 
     Args:
-        context (Context)
+        type_name (str): Name of the asset type collection
+        mode (str): Mode to set the asset collection exclusion:
+            - EXCLUDE
+            - INCLUDE
+            - TOGGLE
+        context (Context): Blender context
+
+    Returns:
+        list[str] | None: List of excluded asset collection names, if exclusion
     """
     if not context:
         context = bpy.context
@@ -1144,26 +1154,40 @@ def toggle_asset_collections_exclusion(
     if not scene:
         return []
 
-    # Check for excluded assets
-    prop_name = "schalotte_excluded_assets"
-    excluded_assets: dict = scene.get(prop_name, {})
-
-    old_excluded = excluded_assets.get(type_name)
-    new_excluded = []
-
-    # Iterate layer collections
+    # Get asset type collection
     layer_col = context.view_layer.layer_collection.children.get(type_name)
     if not layer_col:
         log.error(f"{type_name} not in {context.view_layer} layer collection")
         return []
 
-    for child in layer_col.children:
-        # Include if already excluded
-        if old_excluded and child.name in old_excluded:
-            child.exclude = False
+    # Check for excluded assets
+    prop_name = "schalotte_excluded_assets"
+    excluded_map: dict = scene.get(prop_name, {})
 
-        # Exclude if not selected
-        elif not child.exclude:
+    # Exclude
+    excluded_names = excluded_map.get(type_name, [])
+    if mode == "INCLUDE" or (mode == "TOGGLE" and excluded_names):
+        for collection_name in excluded_names:
+            asset_col = layer_col.children.get(collection_name)
+            if asset_col:
+                asset_col.exclude = False
+            else:
+                log.error(f"Could not find {collection_name} in {layer_col.name}")
+
+        # Remove the type name from exclusions
+        excluded_map.pop(type_name, None)
+
+        # Remove prop if no exclusions are left
+        if not excluded_map.keys():
+            del scene[prop_name]
+
+    # Include
+    else:
+        new_excluded = []
+        for child in layer_col.children:
+            if child.exclude:
+                continue
+
             # Check if collection contains any selected object
             if any(
                 obj in set(child.collection.all_objects)
@@ -1175,21 +1199,13 @@ def toggle_asset_collections_exclusion(
             child.exclude = True
             new_excluded.append(child.name)
 
-    # Remove the type name from exclusions
-    if old_excluded:
-        excluded_assets.pop(type_name)
+        # Store exclusions on scene
+        if new_excluded:
+            # Create scene key if not present
+            if not scene.get(prop_name):
+                scene[prop_name] = {}
 
-        # Remove prop if no exclusions are left
-        if not excluded_assets.keys():
-            del scene[prop_name]
+            # Store list
+            scene[prop_name][type_name] = new_excluded
 
-    # Store exclusions on scene
-    if new_excluded:
-        # Create scene key if not present
-        if not scene.get(prop_name):
-            scene[prop_name] = {}
-
-        # Store list
-        scene[prop_name][type_name] = new_excluded
-
-    return new_excluded
+        return new_excluded
