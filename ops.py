@@ -1604,3 +1604,65 @@ class SCHALOTTETOOL_OT_ToggleAssetCollectionsExclusion(Operator):
             context,
         )
         return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_SetCharacterNodesVisibility(Operator):
+    bl_idname = "schalotte.set_character_nodes_visibility"
+    bl_label = "Set Character Nodes Visibility"
+    bl_options = {"REGISTER", "UNDO"}
+
+    action: EnumProperty(
+        items=(
+            (
+                "HIDE_UNSELECTED",
+                "Hide Unselected",
+                "Hide Geometry nodes modifiers for unselected characters",
+            ),
+            ("HIDE_ALL", "Hide All", "Hide all characters' Geometry Nodes modifiers"),
+            ("UNHIDE", "Unhide", "Unhide all characters' Geometry Nodes modifiers"),
+        ),
+        name="Action",
+        description="Mode",
+    )
+
+    @classmethod
+    def description(cls, context: Context, properties: OperatorProperties) -> str:
+        """
+        Generate description based on properties.
+        """
+        match properties.action:
+            case "HIDE_UNSELECTED":
+                return "Hide Geometry nodes modifiers for unselected characters"
+            case "HIDE_ALL":
+                return "Hide all characters' Geometry Nodes modifiers"
+            case "UNHIDE":
+                return "Unhide all characters' Geometry Nodes modifiers"
+            case _:
+                return "Set character Geometry Nodes modifier visibilities"
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Check for character collection.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: #CH collection available
+        """
+        return bool(bpy.data.collections.get("#CH"))
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Set Geometry Nodes modifier visibilities.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        schalotte.set_character_nodes_visibility(self.action, context)
+        return {"FINISHED"}

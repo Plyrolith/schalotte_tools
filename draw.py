@@ -472,3 +472,21 @@ def performance_ui(self: Panel, context: Context):
             depress=is_excluded,
         )
         op_toggle.type_collection = asset_type
+
+    # Geometry nodes visibility setters
+    col_geo = layout.column(align=True)
+    row_hide = col_geo.row(align=True)
+    row_hide.operator(
+        ops.SCHALOTTETOOL_OT_SetCharacterNodesVisibility.bl_idname,
+        text="Hide Mouths",
+        icon="GHOST_DISABLED",
+    ).action = "HIDE_ALL"
+    row_hide.operator(
+        ops.SCHALOTTETOOL_OT_SetCharacterNodesVisibility.bl_idname,
+        text="Only Unselected",
+    ).action = "HIDE_UNSELECTED"
+    col_geo.row(align=True).operator(
+        ops.SCHALOTTETOOL_OT_SetCharacterNodesVisibility.bl_idname,
+        text="Unhide Mouths",
+        icon="GHOST_ENABLED",
+    ).action = "UNHIDE"

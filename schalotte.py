@@ -1209,3 +1209,69 @@ def set_asset_collections_exclusion(
             scene[prop_name][type_name] = new_excluded
 
         return new_excluded
+
+
+def set_character_nodes_visibility(
+    action: Literal["HIDE_UNSELECTED", "HIDE_ALL", "UNHIDE"] = "HIDE_UNSELECTED",
+    context: Context | None = None,
+):
+    """
+    Set character Geometry Nodes modifier visibilities.
+
+    Args:
+        action(str): How to set the visibility of the modifiers.
+            - HIDE_UNSELECTED
+            - HIDE_ALL
+            - UNHIDE
+        collection (Collection | None): Limit to objects within this collection
+        context (Context | None): Blender context
+    """
+
+    def _cleanup():
+        for obj, mod_props in override_map.items():
+            override_props = obj.override_library.properties
+            for prop in reversed(override_props):
+                if prop.rna_path in mod_props:
+                    log.debug(f"Removing override: {obj.name} - {prop.rna_path}")
+                    override_props.remove(prop)
+
+    bpy.app.timers.register(_cleanup, first_interval=0.0)
+
+    if not context:
+        context = bpy.context
+
+    override_map: dict[Object, set[str]] = {}
+
+    char_col = bpy.data.collections.get("#CH")
+    if not char_col:
+        log.error("#CH collection not found.")
+        return
+
+    for char_col in char_col.children:
+        # Check if collection contains any selected object
+        is_selected = any(
+            obj in set(char_col.all_objects) for obj in context.selected_objects
+        )
+
+        # Loop through objects and modifiers
+        for obj in char_col.all_objects:
+            for mod in obj.modifiers:
+                if mod.type != "NODES":
+                    continue
+
+                if (
+                    action == "HIDE_ALL"
+                    or action == "HIDE_UNSELECTED"
+                    and not is_selected
+                ):
+                    log.debug(f"Hiding: {obj.name} - {mod.name}")
+                    mod.show_viewport = False
+                else:
+                    log.debug(f"Unhiding: {obj.name} - {mod.name}")
+                    mod.show_viewport = True
+
+                if obj.override_library:
+                    prop = f'modifiers["{mod.name}"].show_viewport'
+                    override_map.setdefault(obj, set()).add(prop)
+
+    bpy.app.timers.register(_cleanup, first_interval=0.0)
