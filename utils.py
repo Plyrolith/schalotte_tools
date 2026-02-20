@@ -54,7 +54,7 @@ def are_same_paths(*paths: str | Path, resolve: bool = True) -> bool:
                 path = Path(path)
 
         # Resolve and convert to posix
-        elif resolve:
+        if resolve:
             path = path.resolve()
         path = path.as_posix()
 
