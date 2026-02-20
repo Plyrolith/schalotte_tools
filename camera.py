@@ -23,7 +23,7 @@ def hide_inactive_cameras(_):
     """
     # Don't do anything during playback to not affect performance
     screen = bpy.context.screen
-    if not hasattr(screen, "is_animation_playing") or not screen.is_animation_playing:
+    if not hasattr(screen, "is_animation_playing") or screen.is_animation_playing:
         return
 
     c = CameraSettings.this()
