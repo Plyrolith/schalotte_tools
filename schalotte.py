@@ -158,7 +158,14 @@ def find_asset_blend(asset_name: str, asset_type_name: str) -> Path | None:
     if not blend_files:
         log.debug(f"Asset file not found for {asset_name}")
         return
+
+    # Prefer rig files
     asset_path = blend_files[0]
+    for blend_file in blend_files:
+        if "rig" in blend_file.stem:
+            asset_path = blend_file
+            break
+
     log.debug(f"Found {asset_name} at {asset_path.as_posix()}")
     return asset_path
 
