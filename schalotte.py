@@ -144,7 +144,7 @@ def find_asset_blend(asset_name: str, asset_type_name: str) -> Path | None:
 
     # Find the asset dir based on prefix
     for asset_dir in assets_dir.iterdir():
-        if asset_prefix in asset_dir.name:
+        if f"{asset_prefix}_" in asset_dir.name:
             break
     else:
         log.debug(f"Asset dir not found for {asset_name}")
