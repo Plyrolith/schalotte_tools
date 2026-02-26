@@ -94,6 +94,21 @@ class CastingLink(PropertyGroup):
 
         return self.get_library()
 
+    def get_asset_collection(self) -> Collection | None:
+        """
+        Get this asset's main collection, if already linked.
+
+        Returns:
+            Collection | None: The asset's main collection
+        """
+        library = self.get_library()
+        if not library:
+            return
+
+        for collection in bpy.data.collections:
+            if collection.library is library and collection.name.startswith("#"):
+                return collection
+
     def get_or_link_asset_collection(self) -> Collection | None:
         """
         Get or link this asset's main collection.
@@ -101,16 +116,24 @@ class CastingLink(PropertyGroup):
         Returns:
             Collection | None: The asset's main collection
         """
+        # Ensure library is linked
         library = self.get_library()
         if not library:
             library = self.link()
             if not library:
+                log.error(f"Could not link {self.asset_name} library")
                 return
-        for collection in bpy.data.collections:
-            if collection.library is library and collection.name.startswith("#"):
-                return collection
 
-        log.error(f"Could not find {self.asset_name} collection")
+        # Find asset collection, re-link and retry if not imported
+        collection = self.get_asset_collection()
+        if not collection:
+            self.link()
+            collection = self.get_asset_collection()
+            if not collection:
+                log.error(f"Could not find {self.asset_name} collection")
+                return
+
+        return collection
 
     def get_target_collection(self) -> Collection | None:
         """
