@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import json
+import re
 import subprocess
 import sys
 import zipfile
@@ -15,7 +16,7 @@ def create_package():
     """
     current_dir = Path(__file__).parent.resolve()
 
-    # Get the version from the manifest.toml
+    # Get the version from the blender_manifest.toml
     with open(current_dir / "blender_manifest.toml", "rb") as f:
         manifest_data = tomllib.load(f)
         name = manifest_data["id"]
@@ -125,7 +126,51 @@ def create_repository(repo_url: str):
     build_json.rename(repo_dir / build_json.name)
 
 
+def get_version() -> str:
+    """
+    Return the current package version from blender_manifest.toml.
+
+    Returns:
+        str: Current package version
+    """
+    current_dir = Path(__file__).parent.resolve()
+
+    # Get the version from the pyproject.toml
+    with open(current_dir / "blender_manifest.toml", "rb") as f:
+        manifest_data = tomllib.load(f)
+        return manifest_data["version"]
+
+
+def version_up(version: str):
+    """
+    Update the version tags for pyproject.tml and blender_manifest.toml.
+
+    Args:
+        version (str): New version to set
+    """
+    current_dir = Path(__file__).parent.resolve()
+
+    # Write the new version to the manifests
+    for toml_file in ("pyproject.toml", "blender_manifest.toml"):
+        with open(current_dir / toml_file, "r") as f:
+            content = f.read()
+        content = re.sub(
+            r'^version\s*=\s*".*?"',
+            f'version = "{version}"',
+            content,
+            flags=re.MULTILINE,
+        )
+        with open(current_dir / toml_file, "w") as f:
+            f.write(content)
+
+
 if __name__ == "__main__":
+    version = get_version()
+    new = input(f"Enter the new version (optional, current version is {version}): ")
+    if new:
+        version_up(new)
+        version = new
+    print(f"Creating package {version}")
     url = "https://github.com/Plyrolith/schalotte_tools"
     create_package()
     create_repository(url)
