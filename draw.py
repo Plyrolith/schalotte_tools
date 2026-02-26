@@ -455,8 +455,18 @@ def performance_ui(self: Panel, context: Context):
     Draw a panel with performance optimization tools.
     """
     layout = self.layout
-    simp_icon = "ALIASED" if context.scene.render.use_simplify else "ANTIALIASED"
-    layout.row().prop(context.scene.render, "use_simplify", toggle=True, icon=simp_icon)
+
+    # Simplify
+    render = context.scene.render
+    simp_icon = "ALIASED" if render.use_simplify else "ANTIALIASED"
+    layout.row(align=True).prop(render, "use_simplify", toggle=True, icon=simp_icon)
+    col_simp = layout.column(align=True)
+    col_simp.use_property_split = True
+    col_simp.enabled = render.use_simplify
+    row_viewport = col_simp.row(align=True)
+    row_viewport.prop(render, "simplify_subdivision", text="Viewport", slider=True)
+    row_render = col_simp.row(align=True)
+    row_render.prop(render, "simplify_subdivision_render", text="Render", slider=True)
 
     # Asset collection toggles
     excluded_dict = context.scene.get("schalotte_excluded_assets", {})
