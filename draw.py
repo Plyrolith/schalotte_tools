@@ -223,13 +223,13 @@ def casting_ui(self: Panel, context: Context):
             text="",
             icon="LINKED" if link.library_name else "BLANK1",
         )
-        op_link = row_link.operator(
-            operator=ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
+        op_link = row_link.operator_menu_enum(
+            ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
+            "mode",
             text="",
-            icon="PLUS" if link.library_name else "LINKED",
+            icon="PLUS",
         )
         op_link.index = i
-        op_link.mode = "AUTO"
 
     # Operator to link all missing
     if c.links:
@@ -238,7 +238,7 @@ def casting_ui(self: Panel, context: Context):
             link.file_path and not link.library_name for link in c.links
         )
         op_all = row_all.operator(
-            operator=ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
+            ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
             text="Link All Missing",
             icon="LINKED",
         )

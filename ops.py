@@ -808,43 +808,45 @@ class SCHALOTTETOOL_OT_ImportAsset(Operator):
     index: IntProperty(default=-1)
     mode: EnumProperty(
         items=(
-            (
-                "AUTO",
-                "Staging-based",
-                "Select based on 'animate' label",
-                "SPREADSHEET",
-                0,
-            ),
-            (
-                "INSTANCE",
-                "Instance",
-                "Create instancer object",
-                "EMPTY_AXIS",
-                1,
-            ),
-            (
-                "STATIC_OVERRIDE",
-                "Static Override",
-                "Create a static override",
-                "LIBRARY_DATA_OVERRIDE_NONEDITABLE",
-                2,
-            ),
+            # (
+            #     "AUTO",
+            #     "Staging-based",
+            #     "Select based on 'animate' label",
+            #     "SPREADSHEET",
+            #     0,
+            # ),
+            # (
+            #     "STATIC_OVERRIDE",
+            #     "Static Override",
+            #     "Create a static override",
+            #     "LIBRARY_DATA_OVERRIDE_NONEDITABLE",
+            #     2,
+            # ),
             (
                 "EDITABLE_OVERRIDE",
-                "Editable Override",
+                # "Editable Override",
+                "Link & Override",
                 "Create a fully editable override",
                 "LIBRARY_DATA_OVERRIDE",
-                3,
+                0,
             ),
+            # (
+            #     "INSTANCE",
+            #     "Instance",
+            #     "Create instancer object",
+            #     "EMPTY_AXIS",
+            #     1,
+            # ),
             (
                 "APPEND",
                 "Append",
                 "Append as fully localized asset",
                 "APPEND_BLEND",
-                4,
+                1,
             ),
         ),
         name="Mode",
+        description="Select a method to import this asset",
         default="EDITABLE_OVERRIDE",
     )
 
