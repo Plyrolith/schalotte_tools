@@ -243,7 +243,7 @@ def casting_ui(self: Panel, context: Context):
             icon="LINKED",
         )
         op_all.index = -1
-        op_all.mode = "AUTO"
+        op_all.mode = "EDITABLE_OVERRIDE"
 
 
 def camera_ui(self: Panel, context: Context):
