@@ -223,12 +223,23 @@ def casting_ui(self: Panel, context: Context):
             text="",
             icon="LINKED" if link.library_name else "BLANK1",
         )
-        op_link = row_link.operator_menu_enum(
-            ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
-            "mode",
-            text="",
-            icon="PLUS",
-        )
+
+        # Use selector for Storyboard, link for all other tasks
+        s = session.Session.this()
+        if s.task and s.task.get("task_type_name", "").lower() == "storyboard":
+            op_link = row_link.operator_menu_enum(
+                ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
+                "mode",
+                text="",
+                icon="PLUS",
+            )
+        else:
+            op_link = row_link.operator(
+                ops.SCHALOTTETOOL_OT_ImportAsset.bl_idname,
+                text="",
+                icon="PLUS",
+            )
+            op_link.mode = "EDITABLE_OVERRIDE"
         op_link.index = i
 
     # Operator to link all missing
