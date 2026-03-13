@@ -64,6 +64,8 @@ class Session(catalog.WindowManagerModule):
 
         episodes_enum = []
         for e in c.fetch_list(f"projects/{self.project_id}/episodes"):
+            if e.get("canceled"):
+                continue
             episodes_enum.append((e["id"], e["name"], e["id"]))
 
         if episodes_enum:
@@ -91,6 +93,8 @@ class Session(catalog.WindowManagerModule):
 
         sequences_enum = []
         for s in c.fetch_list(path):
+            if s.get("canceled"):
+                continue
             sequences_enum.append((s["id"], s["name"], s["id"]))
 
         if sequences_enum:
@@ -120,6 +124,8 @@ class Session(catalog.WindowManagerModule):
 
         shots_enum = []
         for s in c.fetch_list(path):
+            if s.get("canceled"):
+                continue
             shots_enum.append((s["id"], s["name"], s["id"]))
 
         if shots_enum:
