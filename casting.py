@@ -14,6 +14,14 @@ from . import catalog, client, logger, schalotte, utils
 log = logger.get_logger(__name__)
 
 
+COLLECTIONS_MAP = {
+    "Character": "#CH",
+    "Environment": "#SET",
+    "Set Prop": "#SET",
+    "Hero Prop": "#PROP",
+}
+
+
 @catalog.bpy_register
 class CastingLink(PropertyGroup):
     """Single casting link, representing an asset"""
@@ -135,19 +143,21 @@ class CastingLink(PropertyGroup):
 
         return collection
 
-    def get_target_collection(self) -> Collection | None:
+    def ensure_target_collection(
+        self,
+        scene: Scene | None = None,
+    ) -> Collection:
         """
-        Find the target collection for this asset.
+        Find or create the target collection for this asset.
+
+        Args:
+            scene (Scene): The scene to link the collection to
 
         Returns:
-            Collection | None
+            Collection
         """
-        target_collection = schalotte.find_asset_type_collection(self.asset_type_name)
-        if target_collection:
-            return target_collection
-        log.error(
-            f"Cannot find collection for {self.asset_name}: {self.asset_type_name}"
-        )
+        col_name = COLLECTIONS_MAP[self.asset_type_name]
+        return schalotte.ensure_type_collection(col_name, scene)
 
     def add_instance(self) -> Object | None:
         """
@@ -162,9 +172,7 @@ class CastingLink(PropertyGroup):
         asset_collection = self.get_or_link_asset_collection()
         if not asset_collection:
             return
-        target_collection = self.get_target_collection()
-        if not target_collection:
-            return
+        target_collection = self.ensure_target_collection()
 
         instance_obj = bpy.data.objects.new(self.asset_name, None)
         instance_obj.instance_type = "COLLECTION"
@@ -192,9 +200,7 @@ class CastingLink(PropertyGroup):
         asset_collection = self.get_or_link_asset_collection()
         if not asset_collection:
             return
-        target_collection = self.get_target_collection()
-        if not target_collection:
-            return
+        target_collection = self.ensure_target_collection(scene)
 
         if not scene:
             scene = bpy.context.scene
@@ -225,9 +231,7 @@ class CastingLink(PropertyGroup):
         asset_collection = self.get_or_link_asset_collection()
         if not asset_collection:
             return
-        target_collection = self.get_target_collection()
-        if not target_collection:
-            return
+        target_collection = self.ensure_target_collection()
 
         # Append collection
         col = utils.append_collection(self.file_path, asset_collection.name)

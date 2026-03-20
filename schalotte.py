@@ -45,11 +45,13 @@ SHOT_TASK_NAME_MAP = {
     "FX": "02_06_VFX",
 }
 
-COLLECTIONS_MAP = {
-    "Character": "#CH",
-    "Environment": "#SET",
-    "Set Prop": "#SET",
-    "Hero Prop": "#PROP",
+COLLECTION_COLORS_MAP = {
+    "#LIGHT": "COLOR_07",
+    "#SET": "COLOR_03",
+    "#FX": "COLOR_05",
+    "#PROP": "COLOR_01",
+    "#CH": "COLOR_04",
+    "#CAM": "COLOR_08",
 }
 
 STB_SETUP_FILE_REL = Path(
@@ -170,18 +172,39 @@ def find_asset_blend(asset_name: str, asset_type_name: str) -> Path | None:
     return asset_path
 
 
-def find_asset_type_collection(asset_type_name: str) -> Collection | None:
+def ensure_type_collection(
+    col_name: str,
+    scene: Scene | None = None,
+) -> Collection:
     """
-    Find the collection for the given asset type, if it exists.
+    Find or create the collection for the given type and link to to the scene.
 
     Args:
-        asset_type_name (str): The name of the asset type to find
+        col_name (str): The name of the asset type to find
+        scene (Scene): The scene to link the collection to
 
     Returns:
-        Collection | None: The collection for the asset type, or None if not found
+        Collection: The collection for the asset type
     """
-    target_name = COLLECTIONS_MAP[asset_type_name]
-    return bpy.data.collections.get(target_name)
+    if not scene:
+        scene = bpy.context.scene
+
+    # Find collection
+    col = bpy.data.collections.get(col_name)
+
+    # Create collection
+    if not col:
+        log.debug(f"Creating collection {col_name}.")
+        col = bpy.data.collections.new(col_name)
+        col.color_tag = COLLECTION_COLORS_MAP[col_name]  # type: ignore
+
+    # Link collection to scene
+    scene_collections = set(scene.collection.children)
+    if col not in scene_collections:
+        log.debug(f"Linking {col_name} to scene collection")
+        scene.collection.children.link(col)
+
+    return col
 
 
 def ensure_camera_rig(
@@ -596,23 +619,8 @@ def setup_storyboard(scene: Scene | None = None):
                     space.shading.use_compositor = "ALWAYS"  # type: ignore
 
     # Collections
-    scene_collections = set(scene.collection.children)
-    for col_name, color in {
-        "#LIGHT": "COLOR_07",
-        "#SET": "COLOR_03",
-        "#FX": "COLOR_05",
-        "#PROP": "COLOR_01",
-        "#CH": "COLOR_04",
-        "#CAM": "COLOR_08",
-    }.items():
-        col = bpy.data.collections.get(col_name)
-        if not col:
-            log.debug(f"Creating collection {col_name}.")
-            col = bpy.data.collections.new(col_name)
-        if col not in scene_collections:
-            log.debug(f"Linking {col_name} to scene collection")
-            scene.collection.children.link(col)
-        col.color_tag = color  # type: ignore
+    for col_name in COLLECTION_COLORS_MAP.keys():
+        ensure_type_collection(col_name, scene)
 
     # Get all character and FX objects to exclude from re-shading
     char_col = bpy.data.collections.get("#CH")
