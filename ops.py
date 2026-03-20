@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
-    from bpy.types import Context, Event, SoundStrip
+    from bpy.types import Context, Event, Library, SoundStrip
 
 import colorsys
 import pprint
@@ -1667,4 +1667,93 @@ class SCHALOTTETOOL_OT_SetCharacterNodesVisibility(Operator):
             set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
         """
         schalotte.set_character_nodes_visibility(self.action, context)
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_PackLibrary(Operator):
+    """Pack this library into the current file to freeze it"""
+
+    bl_idname = "schalotte.pack_library"
+    bl_label = "Pack Library"
+    bl_options = {"REGISTER"}
+
+    library: StringProperty(name="Library", description="Library to be packed")
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Pack given library.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if TYPE_CHECKING:
+            library: Library
+
+        library = bpy.data.libraries[self.library]
+        if library.packed_file:
+            msg = f"Library {library.name} is already packed."
+            log.error(msg)
+            self.report({"ERROR"}, msg)
+            return {"CANCELLED"}
+
+        utils.pack_library(library)
+        return {"FINISHED"}
+
+
+@catalog.bpy_register
+class SCHALOTTETOOL_OT_UnpackLibrary(Operator):
+    """Unpack this frozen library and reset it to the current asset state"""
+
+    bl_idname = "schalotte.unpack_library"
+    bl_label = "Unpack Library"
+    bl_options = {"REGISTER"}
+
+    library: StringProperty(name="Library", description="Library to be unpacked")
+
+    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+        """
+        Invoke confirmation dialog.
+
+        Args:
+            context (Context)
+            event (Event)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        return context.window_manager.invoke_confirm(
+            self,
+            event,
+            title="Unpack Library",
+            message="File will be saved and reverted. Are you sure?"
+        )
+
+    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+        """
+        Unpack given library.
+
+        Args:
+            context (Context)
+
+        Returns:
+            set[str]: CANCELLED, FINISHED, INTERFACE, PASS_THROUGH, RUNNING_MODAL
+        """
+        if TYPE_CHECKING:
+            library: Library
+
+        library = bpy.data.libraries[self.library]
+        if not library.packed_file:
+            msg = f"Library {library.name} is not packed."
+            log.error(msg)
+            self.report({"ERROR"}, msg)
+            return {"CANCELLED"}
+
+        utils.unpack_library(library)
+        bpy.ops.wm.save_mainfile()
+        bpy.ops.wm.revert_mainfile()
+
         return {"FINISHED"}

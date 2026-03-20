@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 import bpy
 from bpy.types import Panel, TIME_MT_editor_menus  # type: ignore
 
-from . import catalog, client, draw, logger, ops, schalotte, session
+from . import casting, catalog, client, draw, logger, ops, schalotte, session
 
 log = logger.get_logger(__name__)
 
@@ -188,3 +188,26 @@ class SCHALOTTE_PT_casting(Panel):
 
     def draw(self, context: Context):
         draw.casting_ui(self, context)
+
+
+@catalog.bpy_register
+class SCHALOTTE_PT_uncast(Panel):
+    bl_idname = "SCHALOTTE_PT_uncast"
+    bl_category = "Schalotte Tools"
+    bl_label = "Other Libraries"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_parent_id = SCHALOTTE_PT_casting.bl_idname
+    bl_options = {"DEFAULT_CLOSED"}
+
+    @classmethod
+    def poll(cls, context: Context):
+        c = casting.Casting.this()
+        cast_libs = {link.get_library() for link in c.links if link.get_library()}
+        for library in bpy.data.libraries:
+            if library not in cast_libs:
+                return True
+        return False
+
+    def draw(self, context: Context):
+        draw.uncast_ui(self, context)

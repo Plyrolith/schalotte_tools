@@ -11,6 +11,7 @@ if TYPE_CHECKING:
         Bone,
         Collection,
         Context,
+        Library,
         Object,
         Operator,
         PoseBone,
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
 import contextlib
 import shutil
 from pathlib import Path
+import tempfile
 
 import bpy
 
@@ -770,3 +772,56 @@ class PropTracker:
             old_value = getattr(current, parts[-1])
             self.value_dict[prop] = (old_value, value)
             setattr(current, parts[-1], value)
+
+
+def pack_library(library: Library):
+    """
+    Pack a single library into the current file.
+
+    Args:
+        library (Library): Library to pack
+    """
+    # Store map of existing library paths
+    lib_paths = {}
+    for lib in bpy.data.libraries:
+        if lib is library or lib.packed_file:
+            continue
+        lib_paths[lib] = lib.filepath
+
+        # Set invalid path so nothing will be packed
+        lib.filepath = "//"
+
+    # Pack
+    bpy.ops.file.pack_libraries()
+
+    # Restore paths
+    for lib, filepath in lib_paths.items():
+        lib.filepath = filepath
+
+
+def unpack_library(library: Library):
+    """
+    Remove a packed library and relink it to its original file.
+
+    Args:
+        library (Library): Library to unpack
+    """
+    # Store existing filepath
+    filepath = library.filepath
+
+    # Set to temporary path
+    tmp_path = Path(tempfile.gettempdir(), "null.blend")
+    library.filepath = tmp_path.as_posix()
+
+    # Unpack
+    try:
+        bpy.ops.file.unpack_libraries()
+    except RuntimeError:
+        pass
+
+    # Restore path
+    library.filepath = filepath
+
+    # Remove temporary file
+    tmp_path.unlink()
+

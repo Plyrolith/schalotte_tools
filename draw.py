@@ -216,13 +216,19 @@ def casting_ui(self: Panel, context: Context):
         row_asset = col_atype.box().row()
         row_asset.label(text=link.asset_name)
 
-        # Link label and operator
+        # Link label and pack operator
         row_link = row_asset.row(align=True)
         row_link.enabled = bool(link.file_path)
-        row_link.label(
-            text="",
-            icon="LINKED" if link.library_name else "BLANK1",
-        )
+        library = link.get_library()
+        if library:
+            row_link.label(text="", icon="LINKED")
+            if library.packed_file:
+                pack_op = ops.SCHALOTTETOOL_OT_UnpackLibrary.bl_idname
+                pack_icon = "PACKAGE"
+            else:
+                pack_op = ops.SCHALOTTETOOL_OT_PackLibrary.bl_idname
+                pack_icon = "UGLYPACKAGE"
+            row_link.operator(pack_op, text="", icon=pack_icon).library = library.name
 
         # Use selector for Storyboard, link for all other tasks
         s = session.Session.this()
@@ -255,6 +261,41 @@ def casting_ui(self: Panel, context: Context):
         )
         op_all.index = -1
         op_all.mode = "EDITABLE_OVERRIDE"
+
+
+def uncast_ui(self: Panel, context: Context):
+    """
+    List of libraries that are not from casted assets.
+    """
+    c = casting.Casting.this()
+    layout = self.layout
+
+    cast_libs = {link.get_library() for link in c.links if link.get_library()}
+
+    # Append for storyboard tasks
+    col_libs = layout.column(align=True)
+    for library in bpy.data.libraries:
+        if library in cast_libs:
+            continue
+
+        # Library label
+        row_library = col_libs.box().row(align=True)
+        row_library.label(text=Path(library.name).stem)
+
+        # Pack operator
+        if library:
+            row_library.label(text="", icon="LINKED")
+            if library.packed_file:
+                pack_op = ops.SCHALOTTETOOL_OT_UnpackLibrary.bl_idname
+                pack_icon = "PACKAGE"
+            else:
+                pack_op = ops.SCHALOTTETOOL_OT_PackLibrary.bl_idname
+                pack_icon = "UGLYPACKAGE"
+            row_library.operator(
+                pack_op,
+                text="",
+                icon=pack_icon,
+            ).library = library.name
 
 
 def camera_ui(self: Panel, context: Context):
