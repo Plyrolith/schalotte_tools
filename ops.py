@@ -1680,6 +1680,19 @@ class SCHALOTTETOOL_OT_PackLibrary(Operator):
 
     library: StringProperty(name="Library", description="Library to be packed")
 
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Allow only if file is saved.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Project root is set.
+        """
+        return bool(bpy.data.filepath)
+
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
         """
         Pack given library.
@@ -1714,6 +1727,19 @@ class SCHALOTTETOOL_OT_UnpackLibrary(Operator):
 
     library: StringProperty(name="Library", description="Library to be unpacked")
 
+    @classmethod
+    def poll(cls, context) -> bool:
+        """
+        Allow only if file is saved.
+
+        Args:
+            context (Context)
+
+        Returns:
+            bool: Project root is set.
+        """
+        return bool(bpy.data.filepath)
+
     def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
         """
         Invoke confirmation dialog.
@@ -1729,7 +1755,7 @@ class SCHALOTTETOOL_OT_UnpackLibrary(Operator):
             self,
             event,
             title="Unpack Library",
-            message="File will be saved and reverted. Are you sure?"
+            message="File will be saved and reverted. Are you sure?",
         )
 
     def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:

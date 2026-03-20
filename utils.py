@@ -792,11 +792,19 @@ def pack_library(library: Library):
         lib.filepath = "//"
 
     # Pack
-    bpy.ops.file.pack_libraries()
+    exception = None
+    try:
+        bpy.ops.file.pack_libraries()
+    except Exception as e:
+        exception = e
 
     # Restore paths
     for lib, filepath in lib_paths.items():
         lib.filepath = filepath
+
+    # Raise potential exception
+    if exception:
+        raise exception
 
 
 def unpack_library(library: Library):
@@ -814,14 +822,23 @@ def unpack_library(library: Library):
     library.filepath = tmp_path.as_posix()
 
     # Unpack
+    exception = None
     try:
         bpy.ops.file.unpack_libraries()
     except RuntimeError:
         pass
+    except Exception as e:
+        exception = e
 
     # Restore path
     library.filepath = filepath
 
     # Remove temporary file
-    tmp_path.unlink()
+    try:
+        tmp_path.unlink()
+    except FileNotFoundError:
+        pass
 
+    # Raise potential exception
+    if exception:
+        raise exception
