@@ -402,9 +402,9 @@ def ensure_storyboard_compositing(scene: Scene | None = None):
     rlay = nodes.new("CompositorNodeRLayers")
     rlay.location = (-320, 510)
 
-    hsv = nodes.new("CompositorNodeHueSat")
-    hsv.inputs["Saturation"].default_value = 0  # type: ignore
-    hsv.location = (0, 510)
+    # hsv = nodes.new("CompositorNodeHueSat")
+    # hsv.inputs["Saturation"].default_value = 0  # type: ignore
+    # hsv.location = (0, 510)
 
     viewer = nodes.new("CompositorNodeViewer")
     viewer.location = (220, 560)
@@ -412,9 +412,12 @@ def ensure_storyboard_compositing(scene: Scene | None = None):
     comp = nodes.new("CompositorNodeComposite")
     comp.location = (220, 460)
 
-    node_tree.links.new(comp.inputs["Image"], hsv.outputs["Image"])
-    node_tree.links.new(viewer.inputs["Image"], hsv.outputs["Image"])
-    node_tree.links.new(hsv.inputs["Image"], rlay.outputs["Image"])
+    # node_tree.links.new(comp.inputs["Image"], hsv.outputs["Image"])
+    # node_tree.links.new(viewer.inputs["Image"], hsv.outputs["Image"])
+    # node_tree.links.new(hsv.inputs["Image"], rlay.outputs["Image"])
+
+    node_tree.links.new(comp.inputs["Image"], rlay.outputs["Image"])
+    node_tree.links.new(viewer.inputs["Image"], rlay.outputs["Image"])
 
 
 def generate_shot_blend_path(task_id: str, use_short_sq: bool = False) -> Path | None:
@@ -610,13 +613,13 @@ def setup_storyboard(scene: Scene | None = None):
     ensure_storyboard_compositing(scene)
 
     # Viewports
-    for window in bpy.context.window_manager.windows:
-        for area in window.screen.areas:
-            if area.type != "VIEW_3D":
-                continue
-            for space in area.spaces:
-                if hasattr(space, "shading"):
-                    space.shading.use_compositor = "ALWAYS"  # type: ignore
+    # for window in bpy.context.window_manager.windows:
+    #     for area in window.screen.areas:
+    #         if area.type != "VIEW_3D":
+    #             continue
+    #         for space in area.spaces:
+    #             if hasattr(space, "shading"):
+    #                 space.shading.use_compositor = "ALWAYS"  # type: ignore
 
     # Collections
     for col_name in COLLECTION_COLORS_MAP.keys():
