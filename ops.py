@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
+    from bpy.stub_internal.rna_enums import OperatorReturnItems
     from bpy.types import Context, Event, Library, SoundStrip
 
 import colorsys
@@ -42,17 +43,6 @@ from . import (
 log = logger.get_logger(__name__)
 
 
-OPERATOR_RETURN_ITEMS = set[
-    Literal[
-        "CANCELLED",
-        "FINISHED",
-        "INTERFACE",
-        "PASS_THROUGH",
-        "RUNNING_MODAL",
-    ]
-]
-
-
 @catalog.bpy_register
 class SCHALOTTETOOLS_OT_LogIn(Operator):
     """Log in to Kitsu"""
@@ -75,7 +65,7 @@ class SCHALOTTETOOLS_OT_LogIn(Operator):
         c = client.Client.this()
         return bool(c.host and c.username and c.password)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Log in to Kitsu.
 
@@ -117,7 +107,7 @@ class SCHALOTTETOOLS_OT_LogOut(Operator):
         """
         return client.Client.this().is_logged_in
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         End the active Kitsu login session.
 
@@ -161,7 +151,7 @@ class SCHALOTTETOOL_OT_CreateWorkFile(Operator):
         """
         return bool(session.Session.this().work_file_path)
 
-    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
         Set mode based on work file and draw UI.
 
@@ -187,7 +177,7 @@ class SCHALOTTETOOL_OT_CreateWorkFile(Operator):
         """
         self.layout.row().prop(self, "mode", expand=True)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Create an empty file or save the current one to the work file path.
 
@@ -272,7 +262,7 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
             bpy.data.filepath and session.Session.this().task
         )
 
-    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
         Invoke the properties dialog.
 
@@ -302,7 +292,7 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
         col.row().prop(self, "use_stamp")
         col.row().prop(self, "use_playback")
 
-    def modal(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+    def modal(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """Handle modal events"""
 
         # Check if rendering is complete
@@ -318,7 +308,7 @@ class SCHALOTTETOOL_OT_RenderPreview(Operator):
 
         return {"RUNNING_MODAL"}
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Render the shot.
 
@@ -531,7 +521,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
             bpy.data.filepath and session.Session.this().task
         )
 
-    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
         Invoke the properties dialog.
 
@@ -550,7 +540,7 @@ class SCHALOTTETOOL_OT_UploadPreview(Operator):
 
         return context.window_manager.invoke_props_dialog(self)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Create a new comment and upload selected video to it.
 
@@ -597,7 +587,7 @@ class SCHALOTTETOOL_OT_SetupStoryboard(Operator):
     bl_label = "Storyboard Setup"
     bl_options = {"REGISTER", "UNDO"}
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Set up the current scene for storyboarding tasks.
 
@@ -640,7 +630,7 @@ class SCHALOTTETOOL_OT_GuessSessionFromFilepath(Operator):
         """
         return bool(bpy.data.filepath)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Guess the current session task context from the file path.
 
@@ -676,7 +666,7 @@ class SCHALOTTETOOL_OT_AddSoundStrips(Operator, ImportHelper):  # type: ignore
     relative_path: BoolProperty(name="Relative Path", default=True)
     skip_existing: BoolProperty(name="Skip Existing", default=True)
 
-    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:  # type: ignore
+    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:  # type: ignore
         """
         Start folder selection.
 
@@ -700,7 +690,7 @@ class SCHALOTTETOOL_OT_AddSoundStrips(Operator, ImportHelper):  # type: ignore
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Import selected audio strips into the sequencer
 
@@ -784,7 +774,7 @@ class SCHALOTTETOOL_OT_FetchCasting(Operator):
         s = session.Session.this()
         return bool(s.project and s.shot)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Fetch the casting for the selected shot.
 
@@ -877,7 +867,7 @@ class SCHALOTTETOOL_OT_ImportAsset(Operator):
         """
         return bool(casting.Casting.this().links)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Fetch the casting for the selected shot.
 
@@ -939,7 +929,7 @@ class SCHALOTTETOOL_OT_SelectPoseBones(Operator):
     bone_names: StringProperty(name="Pose Bones")
     clear: BoolProperty(name="Clear Selection")
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Select pose bones of an armature object.
 
@@ -980,7 +970,7 @@ class SCHALOTTETOOL_OT_FixStoryboardNames(Operator):
     sort_shots: BoolProperty(name="Sort StoryLiner Shots", default=True)
     rename_shots: BoolProperty(name="Rename Shots", default=True)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Sort StoryLiner shots, rename collections, cameras, rigs, data and actions to
         match the new shot order.
@@ -1034,7 +1024,7 @@ class SCHALOTTETOOL_OT_AddShot(Operator):
         else:
             return "Add a new shot without camera transforms"
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Append a new camera and create a new StoryLiner shot.
 
@@ -1176,7 +1166,7 @@ class SCHALOTTETOOL_OT_RemoveStoryLinerGaps(Operator):
         """
         return hasattr(context.scene, "WkStoryLiner_props")
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Remove gaps between StoryLiner shots.
 
@@ -1242,7 +1232,7 @@ class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
         """
         return bool(bpy.data.filepath and session.Session.this().sequence)
 
-    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:  # type: ignore
+    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:  # type: ignore
         """
         Check for external sounds.
 
@@ -1325,7 +1315,7 @@ class SCHALOTTETOOL_OT_CollectSoundFiles(Operator):
             if self.external_sounds:
                 row_unpack.prop(self, "unpack")
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Relocate all external sound strips and unpack them if selected.
 
@@ -1382,7 +1372,7 @@ class SCHALOTTETOOL_OT_SetMarkerShotPreviewRange(Operator):
         default=True,
     )
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Set or unset preview range to current camera marker shot.
 
@@ -1436,7 +1426,7 @@ class SCHALOTTETOOL_OT_KeyframeAllRigs(Operator):
         description="On which frame the new keyframes are set",
     )
 
-    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
         Invoke the properties dialog.
 
@@ -1462,7 +1452,7 @@ class SCHALOTTETOOL_OT_KeyframeAllRigs(Operator):
         col.row().prop(self, "armatures", expand=True)
         col.row().prop(self, "frame", expand=True)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Set keyframes on all rigs.
 
@@ -1533,7 +1523,7 @@ class SCHALOTTETOOL_OT_AddAssetLibrary(Operator):
         default=True,
     )
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Select pose bones of an armature object.
 
@@ -1590,7 +1580,7 @@ class SCHALOTTETOOL_OT_ToggleAssetCollectionsExclusion(Operator):
             case _:
                 return "Toggle exclusion for asset collections"
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Toggle exclusion for asset collections.
 
@@ -1656,7 +1646,7 @@ class SCHALOTTETOOL_OT_SetCharacterNodesVisibility(Operator):
         """
         return bool(bpy.data.collections.get("#CH"))
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Set Geometry Nodes modifier visibilities.
 
@@ -1693,7 +1683,7 @@ class SCHALOTTETOOL_OT_PackLibrary(Operator):
         """
         return bool(bpy.data.filepath)
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Pack given library.
 
@@ -1740,7 +1730,7 @@ class SCHALOTTETOOL_OT_UnpackLibrary(Operator):
         """
         return bool(bpy.data.filepath)
 
-    def invoke(self, context: Context, event: Event) -> OPERATOR_RETURN_ITEMS:
+    def invoke(self, context: Context, event: Event) -> set[OperatorReturnItems]:
         """
         Invoke confirmation dialog.
 
@@ -1758,7 +1748,7 @@ class SCHALOTTETOOL_OT_UnpackLibrary(Operator):
             message="File will be saved and reverted. Are you sure?",
         )
 
-    def execute(self, context: Context) -> OPERATOR_RETURN_ITEMS:
+    def execute(self, context: Context) -> set[OperatorReturnItems]:
         """
         Unpack given library.
 
